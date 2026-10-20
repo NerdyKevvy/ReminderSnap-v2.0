@@ -32,11 +32,11 @@ products = []
   configs = %w[Debug Release].map do |config|
     settings = {
       'PRODUCT_NAME'=>'ReminderSnap', 'EXECUTABLE_NAME'=>'ReminderSnap', 'PRODUCT_BUNDLE_IDENTIFIER'=>'com.nerdykevvy.ReminderSnap',
-      'SWIFT_VERSION'=>'5.0', 'MARKETING_VERSION'=>'2.0', 'CURRENT_PROJECT_VERSION'=>'20002',
-      'CODE_SIGN_STYLE'=>'Automatic', 'GENERATE_INFOPLIST_FILE'=>'NO', 'SWIFT_EMIT_LOC_STRINGS'=>'YES',
+      'SWIFT_VERSION'=>'5.0', 'MARKETING_VERSION'=>'2.0', 'CURRENT_PROJECT_VERSION'=>'20003',
+      'CODE_SIGN_STYLE'=>'Automatic', 'DEVELOPMENT_TEAM'=>'Z977ASQ4T3', 'GENERATE_INFOPLIST_FILE'=>'NO', 'SWIFT_EMIT_LOC_STRINGS'=>'YES',
       'SWIFT_OPTIMIZATION_LEVEL'=>config == 'Debug' ? '-Onone' : '-O',
       'ONLY_ACTIVE_ARCH'=>config == 'Debug' ? 'YES' : 'NO',
-      'ENABLE_PREVIEWS'=>'YES', 'REMINDERSNAP_PRIVACY_POLICY_URL'=>'',
+      'ENABLE_PREVIEWS'=>'YES', 'REMINDERSNAP_PRIVACY_POLICY_URL'=>'https://github.com/NerdyKevvy/ReminderSnap-v2.0/blob/main/AppStore/PRIVACY-POLICY.md',
       'DEBUG_INFORMATION_FORMAT'=>config == 'Debug' ? 'dwarf' : 'dwarf-with-dsym',
       'LD_RUNPATH_SEARCH_PATHS'=>'$(inherited) @executable_path/Frameworks @executable_path/../Frameworks'
     }
