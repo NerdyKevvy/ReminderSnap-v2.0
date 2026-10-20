@@ -1,4 +1,4 @@
-# App Store release gates — 2.0 (20002)
+# App Store release gates — 2.0 (20003)
 
 ## Prepared in this folder
 
@@ -7,26 +7,34 @@
 - [x] Mac sandbox, selected-file read access, Calendar/Reminders entitlement.
 - [x] Reminders/Calendar purpose strings and local-only privacy manifest.
 - [x] App icons; English/Chinese app UI; first-use guide.
-- [x] In-app privacy policy, support entry point and local privacy-policy draft.
+- [x] In-app privacy policy and public privacy/support pages.
 - [x] Production product/display name and parameterized bundle/version values.
 
-## Must finish before upload/review
+## Signing, upload and store setup
 
-- [ ] Developer signs into Xcode; select the correct approved team.
-- [ ] Configure valid signing certificates/profiles. Creating credentials or accepting terms requires the account owner's involvement.
-- [ ] Register the bundle ID and create the App Store Connect app record, adding both macOS and iOS if both will launch together.
-- [ ] Publish the reviewed policy in PRIVACY-POLICY.md at a public HTTPS URL; set REMINDERSNAP_PRIVACY_POLICY_URL in both targets/configurations or supply it during archive.
-- [ ] Verify the support URL is public and usable. GitHub issues are the current in-app support destination; a separate public support page can be used.
-- [ ] Confirm app name, copyright holder, category, price and release countries/regions with the owner.
-- [ ] If paid upfront: Paid Apps Agreement, tax and banking. No IAP does not eliminate this requirement.
-- [ ] Owner answers age rating, export compliance, content rights, EU trader status and applicable agreements. Encryption flag is false because no custom/non-exempt encryption is implemented; reassess if dependencies change.
-- [ ] App Privacy declarations: verify final binary/SDKs. Expected developer collection is None for this implementation; Apple's account sync is independent. Review support-channel handling separately.
+- [x] Developer signed into Xcode; approved team Z977ASQ4T3 configured.
+- [x] Apple Development, Apple Distribution and Mac Installer Distribution certificates created with the owner's approval. iOS App Store distribution profile generated and installed.
+- [x] Bundle ID registered; App Store Connect record 6824731033 created with both macOS and iOS. Existing-team Full Access approved by the owner.
+- [x] Privacy policy published in the approved public GitHub repository and configured in both app targets and App Store Connect.
+- [x] Public support page published; in-app links point to the v2.0 repository.
+- [x] App name ReminderSnap, category Productivity and copyright 2026 Junhan Li saved. Price is free across all 175 available storefronts, as requested by the owner.
+- [x] Owner selected Free with no in-app purchases. Free Apps Agreement is Active; no Paid Apps Agreement was accepted.
+- [x] Owner-approved content-rights and age-rating answers saved; Apple's calculated rating is 4+ with regional exceptions. Owner's non-trader DSA declaration saved and Active. Encryption flag is false because no custom/non-exempt encryption is implemented; reassess if dependencies change.
+- [x] Final implementation reviewed for App Privacy; owner approved Data Not Collected and the final confirmation, and the response is published. Apple's account sync is independent; voluntary public support posts are described separately in the policy.
+- [x] English and Simplified Chinese listing metadata, public support links, private review contacts and testing notes saved for both platforms.
+- [x] Signed distribution archives with dSYMs exported and uploaded for version 2.0 (20003) on both platforms. Both upload logs report success; Apple processing succeeded and the builds are attached to their release pages.
+- [x] Owner testing internal TestFlight group contains both builds as Ready to Test. Only the owner was added, with explicit approval; invitation status is Invited. Automatic build distribution is off.
+- [x] Manual public release selected for both platforms. App Review submission and public release have not occurred.
+
+## Remaining before public release
+
+- [ ] Owner accepts the TestFlight invitation, installs the builds and completes [DEVICE-TEST.md](DEVICE-TEST.md).
 - [ ] Complete real-device testing on iPhone/iPad and sandboxed Mac with dedicated test list/calendar: grant/deny/re-grant, destination creation, two identical imports, same-day deadlines, notifications, timezone/DST, Photos, Files, multitasking and accessibility.
 - [ ] Confirm minimum supported OS behavior and iPad layouts. Test large text, VoiceOver, keyboard navigation and localization. Simulator success is not physical-device notification validation.
 - [ ] Confirm permissions and saved entries behave after a signed update/reinstall. The production ID is different from the preview ID, so permissions/preferences do not automatically carry over.
-- [ ] Capture genuine Mac/iPhone/iPad release screenshots, add localized listing metadata, review contact details and testing notes.
-- [ ] Create distribution archives with dSYMs; inspect final sandbox/privacy/icon resources. Validate in Organizer, upload, wait for processing, address server-side validation errors.
-- [ ] Select processed builds, complete TestFlight testing as desired, and obtain owner's final pricing/metadata/release-method decision before submission.
+- [ ] Capture and upload genuine Mac/iPhone/iPad release screenshots. Have the owner review the final listing presentation.
+- [ ] Resolve any final App Store Connect validation or applicable regional requirements; selecting all storefronts does not establish country-specific legal clearance.
+- [ ] Submit each platform for App Review after test feedback and final listing review. Address review feedback if any, then perform the selected manual release after approval.
 
 Suggested archive command after signing and public policy are ready:
 
@@ -35,7 +43,9 @@ RELEASE_TEAM_ID=YOUR_TEAM RELEASE_PRIVACY_URL=https://YOUR_PUBLIC_POLICY zsh Scr
 RELEASE_TEAM_ID=YOUR_TEAM RELEASE_PRIVACY_URL=https://YOUR_PUBLIC_POLICY zsh Scripts/archive-release.sh iOS
 ```
 
-The script deliberately does not upload, accept contracts, or generate new signing identities automatically.
+The archive script does not upload or accept contracts. Set RELEASE_ALLOW_PROVISIONING=1 only for an already approved account when provisioning updates are desired. An iOS archive can use a manual App Store distribution profile when the team has no registered development devices. The initial iOS distribution archive used the profile named "ReminderSnap App Store" and the Apple Distribution certificate.
+
+Scripts/ExportOptions-AppStore.plist exports locally. Scripts/ExportOptions-Upload.plist uploads to the configured team when explicitly used with xcodebuild -exportArchive. Reusing a build number already accepted by Apple will require a new build number for a changed binary.
 
 Official references:
 - https://developer.apple.com/help/app-store-connect/create-an-app-record/add-a-new-app/

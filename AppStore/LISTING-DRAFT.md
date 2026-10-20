@@ -1,6 +1,6 @@
 # App Store listing — owner review required
 
-Nothing in this document has been submitted. Confirm pricing, regions, legal owner and contact details separately.
+English and Simplified Chinese descriptions, keywords and support links have been saved in App Store Connect for Mac and iOS version 2.0, along with review notes and private contact details. The owner selected a free release without in-app purchases across all 175 available storefronts and manual public release. App Review submission and public release remain separate steps; see UPLOAD-STATUS.md.
 
 ## English
 
@@ -8,7 +8,7 @@ Name: ReminderSnap
 
 Subtitle: Screenshots to Apple Reminders
 
-Category suggestion: Productivity
+Category: Productivity
 
 Description:
 
@@ -28,7 +28,7 @@ No server, advertising, analytics SDK or AI subscription. ReminderSnap does not 
 
 Always review extracted information before saving. Recognition depends on image clarity and layout. Notification delivery depends on system settings and Focus. Native scheduled-reminder display in Calendar requires macOS 15 / iOS 18 or later; companion Calendar events work independently on supported older systems.
 
-Keywords suggestion (verify the field's length in App Store Connect):
+English keywords saved:
 homework,deadline,planner,student,OCR,screenshot,calendar,reminders,PDF,assignment
 
 ## 简体中文
@@ -65,4 +65,4 @@ Clear All clears only the current in-memory review and recognized text. It does 
 
 Attach the included synthetic Samples/Cropped-homework.png and Samples/Example-homework.pdf if needed; these do not contain personal student data. They omit course information deliberately: enter MA-UY 2034 as batch context, or edit the extracted row. Do not use past-due fixtures to evaluate notification delivery; set a future date/time in a dedicated test destination.
 
-Required owner-supplied fields still missing: App Review contact name/email/phone, public privacy URL, final support URL, copyright/legal identity confirmation, pricing and release regions/method.
+Private App Review contact fields, public privacy/support links and copyright (2026 Junhan Li) are saved for both platforms. Owner-approved privacy, content-rights, age-rating and non-trader responses are saved. Remaining presentation work is genuine device screenshots and the owner's final listing review; real-device TestFlight testing must precede public release. Private contact details are intentionally not repeated in this public document.

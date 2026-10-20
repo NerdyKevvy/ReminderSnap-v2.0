@@ -1,6 +1,17 @@
-# Verification — ReminderSnap 2.0, build 20002
+# Verification — ReminderSnap 2.0
 
-Checked locally on October 19, 2026 with Xcode 27.1 (27A9275), macOS 27.0.1, Apple Silicon. The existing v2.0 Preview folder was not edited.
+Initial local checks used build 20002 on October 19, 2026 with Xcode 27.1 (27A9275), macOS 27.0.1, Apple Silicon. The existing v2.0 Preview folder was not edited. The distribution work below uses build 20003.
+
+## Distribution checks — build 20003
+
+- Signing team configured, Apple certificates created with owner approval, and the permanent bundle ID registered.
+- Both platform archives compiled successfully with signing and dSYMs. The Mac archive is universal arm64/x86_64. The iOS archive uses an App Store distribution profile, avoiding a development-device registration requirement.
+- Public privacy/support pages published and release links verified in the source and built Mac Info.plist. No OCR, parsing or persistence behavior changed for this build.
+- Mac distribution export succeeded. Mac and iOS upload logs both report "Upload succeeded" and "EXPORT SUCCEEDED".
+- Both builds completed Apple processing and were attached to their version 2.0 release pages. In the Owner testing internal TestFlight group, both are "Ready to Test". The approved owner invitation was sent and verified as "Invited" (one tester, two builds).
+- The signed Mac archive launches and its safe sample review works. No personal Reminders/Calendar access was granted, and no real tasks were saved during these distribution checks.
+- English/Simplified Chinese metadata, private review contacts, free pricing for 175 storefronts, manual release and owner-approved privacy/compliance responses are saved. Data Not Collected is published; DSA is Active; the calculated global age rating is 4+ with regional exceptions.
+- Upload and TestFlight readiness are not successful real-device tests, App Review approval or a public release.
 
 ## Passed
 
@@ -29,12 +40,11 @@ Checked locally on October 19, 2026 with Xcode 27.1 (27A9275), macOS 27.0.1, App
 
 ## Not yet verified / release blockers
 
-- Distribution certificates/profiles, developer team assignment, Apple archive/server validation or upload. Last local signing-identity check found no valid identities; owner is signing into Xcode.
-- Public policy/support URL availability. A policy draft and in-app policy are provided; public hosting/configuration remains required.
+- Genuine store screenshots, final listing review and App Review submission. Saved metadata, approved declarations, public privacy/support links and signing/upload setup are complete; no public release has occurred.
 - Real Mac/iPhone/iPad permission grants, list/calendar creation, saves and notification delivery with the new production identity. No access to personal Reminders/Calendar was granted during these checks.
 - Physical iPhone/iPad operation, iPad layout/orientations, minimum supported OS behavior, VoiceOver and full Dynamic Type coverage.
 - Calendar's earlier reported ghost display is not claimed repaired.
 
-The local runnable Mac app is `dist/ReminderSnap.app`, an arm64 debug/test build. Universal Mac and physical-iOS Release build products under Build are **unsigned compile checks**, not uploadable distribution archives.
+The earlier local runnable Mac app is `dist/ReminderSnap.app`, an arm64 debug/test build. Signed distribution archives for build 20003 are under Artifacts/ReminderSnap-macOS-2.0-20003.xcarchive and Artifacts/ReminderSnap-iOS-2.0-20003.xcarchive. Earlier compile-only build products are not the uploaded packages.
 
 Build/test logs are retained in `Artifacts/Verification/`. Store-preparation documents and remaining gates are in `AppStore/`.

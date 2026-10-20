@@ -19,11 +19,17 @@ if [[ -e "$archive_path" ]]; then
   echo 'This archive already exists. Preserve it or choose a new build number/path before archiving again.' >&2
   exit 1
 fi
-# Does not automatically create signing credentials, accept agreements, or upload.
-# Configure signing in Xcode first. Opening Organizer is the next manual gate.
+# Configure signing in Xcode first. This script only archives; distribution
+# export, upload and accepting account agreements are separate operations.
+# Explicit provisioning is opt-in for a previously approved developer account.
+provisioning_options=()
+if [[ "${RELEASE_ALLOW_PROVISIONING:-0}" == 1 ]]; then
+  provisioning_options=(-allowProvisioningUpdates)
+fi
 xcodebuild -project ReminderSnap.xcodeproj -scheme "ReminderSnap-$platform" \
   -configuration Release -destination "generic/platform=$platform" \
   -derivedDataPath Build -archivePath "$archive_path" \
+  "${provisioning_options[@]}" \
   DEVELOPMENT_TEAM="$RELEASE_TEAM_ID" REMINDERSNAP_PRIVACY_POLICY_URL="$RELEASE_PRIVACY_URL" archive
 echo "Archive: $archive_path"
 echo 'Validate and distribute with Xcode Organizer after the release checklist is complete.'
