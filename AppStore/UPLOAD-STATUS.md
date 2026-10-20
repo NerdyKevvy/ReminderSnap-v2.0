@@ -1,6 +1,6 @@
 # ReminderSnap 2.0 — upload status
 
-Updated October 19, 2026. This records upload work, not App Review approval or public release.
+Updated October 20, 2026. This records upload and submission work, not App Review approval or public release.
 
 ## App record
 
@@ -23,6 +23,10 @@ Updated October 19, 2026. This records upload work, not App Review approval or p
 
 ## Completed
 
+- Created black/silver product-page panels around genuine fictional-sample captures. Uploaded three each for Mac, iPhone Dynamic Island medium and iPad 13-inch in English and Simplified Chinese (18 images). No owner calendar, reminder list or personal course screenshot was published. Optional larger iPhone exports are retained locally.
+- Corrected the required Chinese privacy-policy URL to the already published bilingual policy. The published Data Not Collected response was not changed.
+- Mac version 2.0 (20004) passed App Store Connect validation and was submitted on October 20 at 11:11 AM Eastern. Confirmed status: Waiting for Review. Submission ID: 1e9ef1ae-175f-4905-acf0-2ebf5e05e9bd. Manual public release remains selected.
+- After screenshot processing completed, iOS version 2.0 (20004), including iPhone/iPad, passed validation and was submitted on October 20 at 11:14 AM Eastern. Confirmed status: Waiting for Review. Submission ID: 67142bc3-9749-4061-b295-cbfcd3cb1cd7. Manual public release remains selected. The submissions page shows both platform versions Waiting for Review and zero draft submissions.
 - Verified Xcode account and GitHub connection. Preserved the owner's untracked Xcode Cloud configuration.
 - Registered the approved permanent bundle ID and created one Mac/iOS App Store Connect record. Existing-team Full Access was explicitly approved.
 - Created signing certificates and an iOS App Store provisioning profile with owner approval. Private signing keys remain in the Mac Keychain; none were committed to GitHub.
@@ -39,9 +43,8 @@ Updated October 19, 2026. This records upload work, not App Review approval or p
 
 - Owner updates TestFlight to build 20004 and checks the revised guide and Calendar connection flow. No repeat invitation acceptance is needed. See [device test checklist](DEVICE-TEST.md).
 - Real-device persistence, permissions and notification testing, including iPad layout, minimum-OS checks and accessibility. No personal Apple reminders/events were written during the upload work.
-- Capture and upload genuine store screenshots for each supported device family; review the saved listing text before submission.
 - Address any App Store Connect validation or applicable regional requirements shown during final submission. The selected storefronts are not a legal certification for every country.
-- Final App Review submission, Apple's review, and manual public release. None has occurred yet.
+- Apple's review of both submitted platform versions, any review feedback, and the selected manual public release after approval. Neither platform is approved or publicly released.
 
 ## Local evidence
 
@@ -64,5 +67,11 @@ Updated October 19, 2026. This records upload work, not App Review approval or p
 - Artifacts/Submission/setup-restart-20004.png
 - Artifacts/Submission/setup-20004-ios-chinese.png
 - Artifacts/Submission/testflight-ready-20004.png
+- Artifacts/Submission/store-mac-media-zh.png
+- Artifacts/Submission/store-ios-media-zh.png
+- Artifacts/Submission/mac-submitted-20004.png
+- Artifacts/Submission/both-submitted-20004.png
+- Artifacts/StoreMedia/preview-en-US.png
+- Artifacts/StoreMedia/preview-zh-Hans.png
 
 Artifacts and build logs are ignored by Git. Review contact details are entered only into Apple's private review fields, not these public documents.

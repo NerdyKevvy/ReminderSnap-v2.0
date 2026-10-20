@@ -23,19 +23,21 @@
 - [x] Final implementation reviewed for App Privacy; owner approved Data Not Collected and the final confirmation, and the response is published. Apple's account sync is independent; voluntary public support posts are described separately in the policy.
 - [x] English and Simplified Chinese listing metadata, public support links, private review contacts and testing notes saved for both platforms.
 - [x] Signed distribution archives with dSYMs exported and uploaded for version 2.0 (20003) on both platforms. Both upload logs report success; Apple processing succeeded and the builds are attached to their release pages.
-- [x] Owner testing internal TestFlight group contains both builds as Ready to Test. Only the owner was added, with explicit approval; invitation status is Invited. Automatic build distribution is off.
-- [x] Manual public release selected for both platforms. App Review submission and public release have not occurred.
+- [x] Owner testing internal TestFlight group contains both builds as Ready to Test. Only the owner was added, with explicit approval; the owner subsequently installed and tested build 20003. Automatic build distribution is off.
+- [x] Manual public release selected for both platforms. Mac and iOS App Review submissions completed October 20; no public release has occurred.
 - [x] Setup follow-up build 20004 compiled, archived, uploaded and processed for Mac/iOS; added to the same owner TestFlight group. Local tests cover old guide preferences, first presentation, restart instructions, approval/pending/revoked state and late refresh. Owner reported the rest of build 20003 working; the new connection flow still requires their device recheck.
 
 ## Remaining before public release
 
-- [ ] Owner accepts the TestFlight invitation, installs the builds and completes [DEVICE-TEST.md](DEVICE-TEST.md).
+- [x] Owner accepted TestFlight and tested build 20003. Follow-up build 20004 is available; a separate explicit device recheck of the revised connection flow has not been recorded. See [DEVICE-TEST.md](DEVICE-TEST.md).
 - [ ] Complete real-device testing on iPhone/iPad and sandboxed Mac with dedicated test list/calendar: grant/deny/re-grant, destination creation, two identical imports, same-day deadlines, notifications, timezone/DST, Photos, Files, multitasking and accessibility.
 - [ ] Confirm minimum supported OS behavior and iPad layouts. Test large text, VoiceOver, keyboard navigation and localization. Simulator success is not physical-device notification validation.
 - [ ] Confirm permissions and saved entries behave after a signed update/reinstall. The production ID is different from the preview ID, so permissions/preferences do not automatically carry over.
-- [ ] Capture and upload genuine Mac/iPhone/iPad release screenshots. Have the owner review the final listing presentation.
-- [ ] Resolve any final App Store Connect validation or applicable regional requirements; selecting all storefronts does not establish country-specific legal clearance.
-- [ ] Submit each platform for App Review after test feedback and final listing review. Address review feedback if any, then perform the selected manual release after approval.
+- [x] Capture and upload three genuine sample-based feature panels for Mac, iPhone and iPad in English and Simplified Chinese. All PNG exports passed dimension/format/no-alpha checks. No owner personal task or calendar data was published.
+- [x] Resolve current App Store Connect validation: Chinese privacy-policy link added, screenshots processed and both submissions accepted into Waiting for Review. Selecting all storefronts does not establish country-specific legal clearance; address any later applicable requirement if raised.
+- [x] Submit macOS 2.0 (20004) for App Review; status Waiting for Review, October 20, 2026.
+- [x] Submit iOS 2.0 (20004) for App Review; status Waiting for Review, October 20, 2026.
+- [ ] Address review feedback for either platform if any and perform the selected manual release after approval.
 
 Suggested archive command after signing and public policy are ready:
 

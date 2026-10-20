@@ -2,6 +2,14 @@
 
 Initial local checks used build 20002 on October 19, 2026 with Xcode 27.1 (27A9275), macOS 27.0.1, Apple Silicon. The existing v2.0 Preview folder was not edited. Initial distribution used build 20003; the setup follow-up uses build 20004.
 
+## Store media and submission — October 20
+
+- Captured the real build 20004 interface using fictional built-in tasks on an isolated Mac app, iPhone simulator and iPad 13-inch simulator, in English and Simplified Chinese. No personal Apple permissions or actual saves were performed for these captures.
+- Rendered three black/silver product-page feature panels per locale/device family. No app UI was fabricated. Copy distinguishes local/offline recognition from network-dependent iCloud synchronization and retains review-before-save language.
+- All 24 generated PNGs passed exact dimension, PNG format and no-alpha checks; the renderer passed Node syntax validation. Eighteen assets were uploaded across the required Mac, medium iPhone and iPad families. Larger iPhone exports are optional and were not uploaded.
+- App Store Connect validation found a missing Chinese privacy-policy URL, corrected to the already approved/published bilingual policy. Existing privacy answers were unchanged.
+- Mac version 2.0 (20004) passed validation and reached Waiting for Review at 11:11 AM Eastern. After screenshot processing finished, iOS version 2.0 (20004) reached Waiting for Review at 11:14 AM Eastern. The final submissions table shows both platform versions and zero remaining drafts. These are not App Review approval or public-release confirmations.
+
 ## Setup follow-up — build 20004
 
 The owner tested build 20003 and reported the rest of the app working, but Calendar's granted status appeared only after restarting and the initial guide did not appear after the TestFlight installation.
@@ -55,9 +63,9 @@ Apple's [EventKit access documentation](https://developer.apple.com/documentatio
 
 ## Not yet verified / release blockers
 
-- Genuine store screenshots, final listing review and App Review submission. Saved metadata, approved declarations, public privacy/support links and signing/upload setup are complete; no public release has occurred.
+- Apple's review of both platforms and manual public release. Genuine localized store screenshots, saved metadata, approved declarations, public privacy/support links, signing/upload and both review submissions are complete. No public release has occurred.
 - Real Mac/iPhone/iPad permission grants, list/calendar creation, saves and notification delivery with the new production identity. No access to personal Reminders/Calendar was granted during these checks.
-- Physical iPhone/iPad operation, iPad layout/orientations, minimum supported OS behavior, VoiceOver and full Dynamic Type coverage.
+- Physical iPhone/iPad operation, iPad orientations, minimum supported OS behavior, VoiceOver and full Dynamic Type coverage. The portrait iPad simulator review/editor/settings layouts were visibly checked during store capture, not physical-device notification behavior.
 - Calendar's earlier reported ghost display is not claimed repaired.
 
 The earlier local runnable Mac app is `dist/ReminderSnap.app`, an arm64 debug/test build. Signed distribution archives for build 20003 are under Artifacts/ReminderSnap-macOS-2.0-20003.xcarchive and Artifacts/ReminderSnap-iOS-2.0-20003.xcarchive. Earlier compile-only build products are not the uploaded packages.
