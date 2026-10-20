@@ -65,6 +65,7 @@ enum ChineseCatalog {
         "Access restricted by this Mac's policy": "此 Mac 的管理策略限制了访问",
         "Add-only access — full access is needed to select and update destinations": "仅允许添加；选择和更新保存位置需要完整访问权限",
         "Full access granted": "已获得完整访问权限",
+        "Access approved. After setup, quit and reopen ReminderSnap once to finish refreshing Apple app connections.": "权限请求已获批准。完成设置后，请退出并重新打开 ReminderSnap 一次，以刷新 Apple 应用连接。",
         "Choose where your tasks belong.": "选择任务的保存位置。",
         "iCloud destinations can sync when that account’s sync settings are enabled. A local destination stays on this Mac. ReminderSnap cannot sign you in or enable iCloud automatically.": "启用对应账号的同步设置后，iCloud 保存位置可跨设备同步。本地保存位置仅保留在此 Mac 上。ReminderSnap 无法代你登录或自动开启 iCloud。",
         "Make notifications useful, not noisy.": "让通知有用，而不是打扰。",

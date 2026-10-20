@@ -59,6 +59,8 @@ homework,deadline,planner,student,OCR,screenshot,calendar,reminders,PDF,assignme
 
 No app account or login is required. The first-launch guide has three steps. Permissions are optional for import/review; choose Set Up Later to try the interface without access.
 
+Build 20004 revises first-launch presentation and replays the updated guide once for older completed installations. After allowing or changing Apple app permissions, finish setup and quit/reopen ReminderSnap once before importing real tasks. On Mac use Command-Q rather than just closing the window; on iOS close the app in the app switcher and reopen. The guide can always be replayed from User Guide. Pending permission confirmation never bypasses actual full-access checks.
+
 Use Try Sample to test editing, selection, navigation, localization and the safe Test Save flow without modifying Apple data. For actual persistence, connect Reminders/Calendar in User Guide, choose dedicated test destinations or explicitly create them, import a real screenshot/PDF, review and save selected tasks. Sample mode deliberately never writes real entries.
 
 Clear All clears only the current in-memory review and recognized text. It does not delete saved Apple reminders/events. Calendar blocks are separate events in the chosen calendar, not shifted reminder deadlines. Early/multiple alerts are attached to Calendar blocks.

@@ -1,4 +1,4 @@
-# App Store release gates — 2.0 (20003)
+# App Store release gates — 2.0 (20004)
 
 ## Prepared in this folder
 
@@ -25,6 +25,7 @@
 - [x] Signed distribution archives with dSYMs exported and uploaded for version 2.0 (20003) on both platforms. Both upload logs report success; Apple processing succeeded and the builds are attached to their release pages.
 - [x] Owner testing internal TestFlight group contains both builds as Ready to Test. Only the owner was added, with explicit approval; invitation status is Invited. Automatic build distribution is off.
 - [x] Manual public release selected for both platforms. App Review submission and public release have not occurred.
+- [x] Setup follow-up build 20004 compiled, archived, uploaded and processed for Mac/iOS; added to the same owner TestFlight group. Local tests cover old guide preferences, first presentation, restart instructions, approval/pending/revoked state and late refresh. Owner reported the rest of build 20003 working; the new connection flow still requires their device recheck.
 
 ## Remaining before public release
 

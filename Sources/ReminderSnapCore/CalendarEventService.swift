@@ -123,7 +123,10 @@ public final class CalendarEventService {
                 }
             }
             guard granted else { throw CalendarEventServiceError.accessDenied }
-            refreshAccess(reconnect: true)
+            // Apple's permission callback authorizes this instance. Reset its
+            // pre-grant cache without immediately discarding that connection.
+            store.reset()
+            observedPermission = permissionState
         } catch let error as CalendarEventServiceError {
             throw error
         } catch {

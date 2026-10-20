@@ -14,6 +14,7 @@ struct ConnectionsView: View {
                     .font(.system(size: 14)).foregroundStyle(Studio.muted).fixedSize(horizontal: false, vertical: true)
                 GuideSteps()
                 AppleConnectionsSection()
+                PermissionRestartNotice()
                 GuideChecklist()
                 Button(model.copy("Replay first-launch guide", "重新查看首次使用引导")) { model.showingSetup = true }.buttonStyle(QuietButtonStyle())
                 Button(model.copy("Back to Add Reminder", "返回添加提醒")) { model.page = .addReminder }.buttonStyle(SilverButtonStyle())
@@ -67,6 +68,34 @@ struct GuideChecklist: View {
     }
 }
 
+struct PermissionRestartNotice: View {
+    @EnvironmentObject private var model: AppModel
+    var compact = false
+    var body: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            Label(model.copy("After allowing access, reopen ReminderSnap once", "允许访问后，请重新打开 ReminderSnap 一次"), systemImage: "arrow.clockwise.circle")
+                .font(.system(size: compact ? 12 : 14, weight: .semibold))
+            if compact {
+                Text(model.copy("Finish setup, then quit and reopen this app before your first real import. You do not need to restart your device.", "完成设置后，请先退出并重新打开本应用，再导入真实任务。无需重启设备。"))
+                    .font(.system(size: 12)).foregroundStyle(Studio.muted)
+            } else {
+                Text(model.copy("Apple app permissions may take a relaunch to appear correctly. After granting or changing Reminders/Calendar access, quit and reopen ReminderSnap once, then check your chosen list and calendar in User Guide.", "提醒事项和日历的授权状态可能需要重新启动应用才能正确显示。允许或更改权限后，请退出并重新打开 ReminderSnap 一次，然后在使用指南中检查所选列表和日历。"))
+                #if os(macOS)
+                Text(model.copy("On Mac: choose ReminderSnap → Quit ReminderSnap (⌘Q), then open it again. Closing only the window is not a restart.", "在 Mac 上：选择 ReminderSnap → 退出 ReminderSnap（⌘Q），然后重新打开。仅关闭窗口不算重启应用。"))
+                #else
+                Text(model.copy("On iPhone/iPad: close ReminderSnap from the app switcher, then open it again. You do not need to restart your device.", "在 iPhone/iPad 上：从 App 切换器关闭 ReminderSnap，然后重新打开。无需重启设备。"))
+                #endif
+                Text(model.copy("Do this before importing real tasks. Unsaved review items are not kept after quitting. Saved Apple reminders and calendar blocks stay unchanged.", "请在导入真实任务前完成此步骤。退出后不会保留尚未保存的核对列表，已保存的 Apple 提醒事项和日历时间块不受影响。"))
+            }
+        }
+        .font(.system(size: 12)).foregroundStyle(Studio.muted).lineSpacing(3)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(compact ? 12 : 18).background(Studio.amber.opacity(0.07))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .accessibilityIdentifier("setup.restartNotice")
+    }
+}
+
 struct GuideSteps: View {
     @EnvironmentObject private var model: AppModel
     var body: some View {
@@ -96,6 +125,10 @@ struct DestinationPanel: View {
     @State private var name = ""
     @State private var accountID = ""
     private var access: Bool { reminders ? model.reminderAccess : model.calendarAccess }
+    private var permission: PermissionState { reminders ? model.reminderPermission : model.calendarPermission }
+    private var awaitingConfirmation: Bool {
+        model.permissionSetup.awaitingConfirmation(reminders: reminders, permission: permission)
+    }
     private var destinations: [DestinationChoice] { reminders ? model.reminderLists : model.calendars }
     private var accounts: [AccountChoice] { reminders ? model.reminderAccounts : model.calendarAccounts }
     private var selectedID: Binding<String> { reminders ? $model.selectedListID : $model.selectedCalendarID }
@@ -110,7 +143,7 @@ struct DestinationPanel: View {
                         Text(reminders ? model.copy("The real deadline & completion", "真实截止时间与完成状态") : model.copy("A little space to see what’s due", "直观展示即将到期的任务")).font(.system(size: 11)).foregroundStyle(Studio.muted)
                     }
                     Spacer(minLength: 0)
-                    Pill(text: access ? model.copy("Allowed", "已授权") : model.copy("Not connected", "未连接"), color: access ? Studio.green : Studio.amber)
+                    Pill(text: access ? model.copy("Allowed", "已授权") : (awaitingConfirmation ? model.copy("Approved · reopen app", "已批准 · 请重开应用") : model.copy("Not connected", "未连接")), color: access ? Studio.green : Studio.amber)
                 }
                 if access {
                     Picker(reminders ? model.copy("List", "列表") : model.copy("Calendar", "日历"), selection: selectedID) {
@@ -135,8 +168,15 @@ struct DestinationPanel: View {
                         }.padding(.top, 12)
                     }.font(.system(size: 12)).foregroundStyle(Studio.muted)
                 } else {
+                    if awaitingConfirmation {
+                        Text(model.copy("The access request was approved, but the system has not confirmed the connection yet. Quit and reopen ReminderSnap once, then check again. Saving stays disabled until full access is confirmed.", "访问请求已获批准，但系统尚未确认连接。请退出并重新打开 ReminderSnap 一次，然后重新检查。确认完整访问权限前，无法保存。"))
+                            .font(.system(size: 12)).foregroundStyle(Studio.amber)
+                    }
+                    if !awaitingConfirmation {
+                        Text(model.t(permission.descriptionKey)).font(.caption).foregroundStyle(Studio.amber)
+                    }
                     Text(model.copy("Grant full access to select a destination and avoid duplicates. You can import and review without it. If access was denied, enable it in Settings and check again.", "授权完整访问权限后即可选择目标并避免重复添加。无需授权也可导入和核对。若权限已被拒绝，请在系统设置中开启后重新检查。" )).font(.system(size: 12)).foregroundStyle(Studio.muted)
-                    Button(model.copy("Connect", "连接")) { model.connect(reminders: reminders) }.buttonStyle(SilverButtonStyle(small: true)).disabled(model.isSettingUp)
+                    Button(model.copy("Connect", "连接")) { model.connect(reminders: reminders) }.buttonStyle(SilverButtonStyle(small: true)).disabled(model.isSettingUp || awaitingConfirmation)
                 }
             }
         }

@@ -145,6 +145,7 @@ private func XCTUnwrap<T>(_ value: T?) throws -> T {
         if failures > 0 { Darwin.exit(1) }
         try await Version16Tests.run()
         try await Version161Tests.run()
+        try await SetupExperienceTests.run()
         if CommandLine.arguments.contains("--reading") { try ReadingTests.run() }
     }
 }

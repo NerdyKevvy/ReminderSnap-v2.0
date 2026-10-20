@@ -80,8 +80,9 @@ struct WelcomeView: View {
                             .font(.system(size: 13)).foregroundStyle(Studio.muted)
                         AppleConnectionsSection()
                     } else {
-                        Text(model.copy("Ready for your first import.", "准备好导入第一个任务。"))
+                        Text(model.copy("One last setup check.", "最后检查一下设置。"))
                             .font(.system(size: 26, weight: .medium))
+                        PermissionRestartNotice()
                         Label(model.destinationNeedsRepair ? model.copy("Destinations can be connected later in User Guide.", "可以稍后在使用指南中连接保存位置。") : model.copy("Your selected destinations are ready.", "所选保存位置已就绪。"), systemImage: model.destinationNeedsRepair ? "info.circle" : "checkmark.circle")
                             .font(.system(size: 13)).foregroundStyle(model.destinationNeedsRepair ? Studio.amber : Studio.green)
                         GuideChecklist()
@@ -97,12 +98,13 @@ struct WelcomeView: View {
                     Button(model.copy("Back", "返回")) { step -= 1 }.buttonStyle(QuietButtonStyle())
                 }
                 Spacer(minLength: 0)
-                Button(model.copy(step == 2 ? "Start Adding Reminders" : (step == 1 && model.destinationNeedsRepair ? "Set Up Later" : "Continue"), step == 2 ? "开始添加提醒" : (step == 1 && model.destinationNeedsRepair ? "稍后设置" : "继续"))) {
+                Button(model.copy(step == 2 ? "Finish Setup" : (step == 1 && model.destinationNeedsRepair ? "Set Up Later" : "Continue"), step == 2 ? "完成设置" : (step == 1 && model.destinationNeedsRepair ? "稍后设置" : "继续"))) {
                     if step == 2 { model.finishSetup() } else { step += 1 }
                 }.buttonStyle(SilverButtonStyle()).accessibilityIdentifier("onboarding.continue")
             }.padding(20).background(Studio.sidebar).disabled(model.isSettingUp)
         }.background(Studio.background).foregroundStyle(Studio.silver).tint(Studio.silver).preferredColorScheme(.dark)
         .interactiveDismissDisabled()
+        .accessibilityIdentifier("onboarding.guide")
         #if os(macOS)
         .frame(width: 620, height: 720)
         #endif

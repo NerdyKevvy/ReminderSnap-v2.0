@@ -70,7 +70,8 @@ public final class RemindersService {
             }
         }
         guard granted else { throw RemindersServiceError.accessDenied }
-        refreshAccess(reconnect: true)
+        store.reset()
+        observedPermission = permissionState
     }
 
     public func listNames() -> [String] {

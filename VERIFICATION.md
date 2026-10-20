@@ -1,6 +1,21 @@
 # Verification — ReminderSnap 2.0
 
-Initial local checks used build 20002 on October 19, 2026 with Xcode 27.1 (27A9275), macOS 27.0.1, Apple Silicon. The existing v2.0 Preview folder was not edited. The distribution work below uses build 20003.
+Initial local checks used build 20002 on October 19, 2026 with Xcode 27.1 (27A9275), macOS 27.0.1, Apple Silicon. The existing v2.0 Preview folder was not edited. Initial distribution used build 20003; the setup follow-up uses build 20004.
+
+## Setup follow-up — build 20004
+
+The owner tested build 20003 and reported the rest of the app working, but Calendar's granted status appeared only after restarting and the initial guide did not appear after the TestFlight installation.
+
+- Replaced the legacy completion boolean with a versioned guide revision. Regression tests cover a fresh preference domain, upgrade retaining the old completion flag, interrupted setup, completed relaunch and a newer saved revision.
+- The guide now begins only after an active scene's presentation host is attached. An isolated sandboxed Mac build visibly presented all three steps without a menu action. Finish → quit → reopen showed the main screen without repeating the completed guide. Production preferences were not reset.
+- iPhone 18 Pro / iOS 27.0 simulator visibly presented the guide on first launch; the final step's quit/reopen advice was checked in English and Simplified Chinese. No Apple permissions or real saves were performed during these UI checks.
+- Successful access callbacks now acknowledge approval immediately, reset the existing authorized EventKit session and start a bounded longer refresh. System-confirmed authorization still gates all read/save access. Pending, denied and revoked state behavior is covered by tests; restart advice is session-only.
+- A prominent final-guide notice, permanent User Guide instructions and a post-grant session banner explain quitting/reopening the app once before importing real tasks. Unsaved-data behavior is explicit; the app never quits automatically.
+- Both Mac and iOS simulator builds passed. Complete local regression/OCR/PDF and CLI self-tests passed (see Artifacts/Verification/setup-20004-regression.log). Restricted-process Vision failure was environmental; the allowed local rerun passed.
+- Both signed release archives and uploads completed successfully. Apple processing succeeded and both build 20004 packages are Ready to Test in the existing owner group. Upload/processing/distribution evidence is tracked in AppStore/UPLOAD-STATUS.md.
+- Actual first-grant/re-grant behavior on the owner's TestFlight devices remains to be rechecked. These tests do not prove that every OS authorization cache refreshes without a restart, and that is why the requested workaround remains visible.
+
+Apple's [EventKit access documentation](https://developer.apple.com/documentation/eventkit/ekeventstore/requestfullaccesstoevents(completion:)) describes resetting a pre-authorization event store after access is granted.
 
 ## Distribution checks — build 20003
 

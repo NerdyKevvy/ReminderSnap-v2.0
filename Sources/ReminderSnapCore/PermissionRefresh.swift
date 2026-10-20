@@ -36,7 +36,7 @@ public final class PermissionRefreshLoop {
     private var reconnectPending = false
     private let delays: [UInt64]
     private let refresh: (Bool) -> Bool
-    public init(delays: [UInt64] = [0, 200_000_000, 600_000_000, 1_200_000_000], refresh: @escaping (Bool) -> Bool) {
+    public init(delays: [UInt64] = [0, 200_000_000, 600_000_000, 1_200_000_000, 2_000_000_000, 3_000_000_000], refresh: @escaping (Bool) -> Bool) {
         self.delays = delays; self.refresh = refresh
     }
     public func start(reconnect: Bool = false) {

@@ -36,7 +36,10 @@ final class AppModel: ObservableObject {
     @Published var previewSaved = false
     @Published var importedFileCount = 0
     @Published var saveCompleted = false
-    @Published var showingSetup = !UserDefaults.standard.bool(forKey: "ReminderSnap.SetupCompleted.v2")
+    // Present only after an active scene is attached; an initially true sheet
+    // binding can race the first TestFlight window's presentation lifecycle.
+    @Published var showingSetup = false
+    @Published private(set) var permissionSetup = PermissionSetupProgress()
     @Published var setupMessage: LocalizedMessage = ""
     @Published var language: AppLanguage = .current {
         didSet { UserDefaults.standard.set(language.rawValue, forKey: AppLanguage.preferenceKey) }
@@ -81,6 +84,9 @@ final class AppModel: ObservableObject {
     private let defaults = UserDefaults.standard
     private var storeObserver: AnyCancellable?
     private var accessRefreshPending = false
+    private var accessRefreshObservation: Task<Void, Never>?
+    private let setupGuide = SetupGuideProgress()
+    private var didPresentGuideThisSession = false
     private var photoDirectory: URL?
     private lazy var accessRefresh = PermissionRefreshLoop { [weak self] reconnect in
         guard let self, !self.isProcessing, !self.isSettingUp else {
@@ -135,6 +141,7 @@ final class AppModel: ObservableObject {
         calendarEventService.refreshAccess(reconnect: reconnect)
         reminderPermission = reminderService.permissionState
         calendarPermission = calendarEventService.permissionState
+        permissionSetup.observe(reminders: reminderPermission, calendar: calendarPermission)
         reminderAccess = reminderService.hasAccess
         calendarAccess = calendarEventService.hasAccess
         reminderLists = reminderService.lists(); reminderAccounts = reminderService.accounts()
@@ -149,10 +156,26 @@ final class AppModel: ObservableObject {
 
     func requestAccessRefresh(reconnect: Bool = false) {
         if isProcessing || isSettingUp { accessRefreshPending = true; return }
+        isRefreshingAccess = true
         accessRefresh.start(reconnect: reconnect)
+        accessRefreshObservation?.cancel()
+        accessRefreshObservation = Task { [weak self] in
+            guard let self else { return }
+            await accessRefresh.waitForCompletion()
+            guard !Task.isCancelled else { return }
+            isRefreshingAccess = false
+        }
     }
 
     func checkAccessAgain() { requestAccessRefresh(reconnect: true) }
+
+    func sceneBecameActive() {
+        if setupGuide.needsPresentation && !didPresentGuideThisSession {
+            didPresentGuideThisSession = true
+            showingSetup = true
+        }
+        requestAccessRefresh(reconnect: true)
+    }
 
     func connect(reminders: Bool) {
         guard !isSettingUp else { return }
@@ -160,17 +183,16 @@ final class AppModel: ObservableObject {
         Task {
             defer {
                 isSettingUp = false
-                isRefreshingAccess = true
-                requestAccessRefresh(reconnect: true)
-                Task {
-                    await accessRefresh.waitForCompletion()
-                    isRefreshingAccess = false
-                }
+                // Keep the just-authorized store alive for the initial refresh.
+                // Manual Check again / scene activation can rebuild it later.
+                requestAccessRefresh()
             }
             do {
                 if reminders { try await reminderService.requestAccess() }
                 else { try await calendarEventService.requestAccess() }
-                setupMessage = "Access granted. Choose or create your destination below."
+                permissionSetup.recordApproval(reminders: reminders)
+                refreshDestinations()
+                setupMessage = "Access approved. After setup, quit and reopen ReminderSnap once to finish refreshing Apple app connections."
             } catch { setupMessage = LocalizedMessage(verbatim: error.localizedDescription) }
         }
     }
@@ -190,7 +212,7 @@ final class AppModel: ObservableObject {
     }
 
     func finishSetup() {
-        defaults.set(true, forKey: "ReminderSnap.SetupCompleted.v2")
+        setupGuide.complete()
         showingSetup = false
         page = .addReminder
     }

@@ -14,6 +14,10 @@ struct StudioShell: View {
                 VStack(spacing: 0) {
                     topbar(compact: compact)
                     Rectangle().fill(Studio.line).frame(height: 1).allowsHitTesting(false)
+                    if model.permissionSetup.restartRecommended {
+                        PermissionRestartNotice(compact: true)
+                            .padding(.horizontal, compact ? 18 : 32).padding(.vertical, 12)
+                    }
                     Group {
                         switch model.page {
                         case .addReminder: ReviewView(compact: compact)
@@ -41,7 +45,13 @@ struct StudioShell: View {
         } message: {
             Text(model.copy("Remove the review list and temporary recognized text. Saved Apple reminders, calendar blocks and your source files will not be deleted.", "移除待核对任务与临时识别文本，不会删除已保存的 Apple 提醒事项、日历时间块或原始文件。"))
         }
-        .onValueChange(phase) { state in if state == .active { model.requestAccessRefresh(reconnect: true) } }
+        .task(id: phase) {
+            guard phase == .active else { return }
+            // Give SwiftUI one scheduling turn to attach the presentation host.
+            await Task.yield()
+            guard !Task.isCancelled else { return }
+            model.sceneBecameActive()
+        }
         .onValueChange(model.selectedListID) { _ in model.destinationChanged() }
         .onValueChange(model.selectedCalendarID) { _ in model.destinationChanged() }
         .onValueChange(model.outputMode) { _ in model.destinationChanged() }
