@@ -70,7 +70,8 @@ async function render(device,locale,index) {
   pieces.push(text(['ReminderSnap'],x+iconSize+22,brandY,isMac?39:isPad?48:37,{spacing:1,weight:500}));
   if(isMac) {
     const headlineSize=locale==='zh-Hans'?96:122;
-    const headline=locale==='zh-Hans'&&index===2?['你的任务，','留在熟悉的','Apple 应用。']:story.title;
+    // Mac metadata revision for guideline 5.2.5. Leave the released iOS assets unchanged.
+    const headline=index===2?(locale==='zh-Hans'?['你的任务，','日程更清晰。']:['Your tasks.','Your day.']):story.title;
     pieces.push(text(headline,140,310,headlineSize,{weight:500,line:1.19,spacing:locale==='zh-Hans'?-3:-4}));
     const bodyLines = locale==='en-US' ? [
       ['Import. Review. Save.','Reminders + Calendar,','without the retyping.'],

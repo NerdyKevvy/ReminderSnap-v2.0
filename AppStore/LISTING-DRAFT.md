@@ -6,7 +6,7 @@ English and Simplified Chinese descriptions, keywords and support links have bee
 
 Name: ReminderSnap
 
-Subtitle: Screenshots to Apple Reminders
+Subtitle: Screenshots to tasks
 
 Category: Productivity
 
@@ -35,7 +35,7 @@ homework,deadline,planner,student,OCR,screenshot,calendar,reminders,PDF,assignme
 
 名称：ReminderSnap
 
-副标题：从截图到 Apple 提醒事项
+副标题：截图识别，轻松创建待办与日程
 
 描述：
 
@@ -67,4 +67,10 @@ Clear All clears only the current in-memory review and recognized text. It does 
 
 Attach the included synthetic Samples/Cropped-homework.png and Samples/Example-homework.pdf if needed; these do not contain personal student data. They omit course information deliberately: enter MA-UY 2034 as batch context, or edit the extracted row. Do not use past-due fixtures to evaluate notification delivery; set a future date/time in a dedicated test destination.
 
-Private App Review contact fields, public privacy/support links and copyright (2026 Junhan Li) are saved for both platforms. Owner-approved privacy, content-rights, age-rating and non-trader responses are saved. Remaining presentation work is genuine device screenshots and the owner's final listing review; real-device TestFlight testing must precede public release. Private contact details are intentionally not repeated in this public document.
+Private App Review contact fields, public privacy/support links and copyright (2026 Junhan Li) are saved for both platforms. Owner-approved privacy, content-rights, age-rating and non-trader responses are saved. Genuine localized device screenshots were uploaded October 20. Private contact details are intentionally not repeated in this public document.
+
+## October 22 metadata correction
+
+The Mac review of build 20004 cited guideline 5.2.5 and specifically objected to Apple terms in the subtitle. The English and Simplified Chinese subtitles above replace the submitted Apple-branded wording. App Information is shared across platforms; App Store Connect labels these as changes released with the next app version. The already released iOS binary/version was not replaced, withdrawn or resubmitted.
+
+As an additional precaution, the third Mac screenshot headline was revised to "Your tasks. Your day." / "你的任务，日程更清晰。" Accurate compatibility explanations remain in the description and screenshot body. The revised panel is uploaded as `03-tasks-and-calendar.png`; its tracked render output retains the original filename for script compatibility. The other two Mac panels and all released iPhone/iPad panels are unchanged. Previous Mac panels remain in Apple's Asset Library and in the ignored local archive.

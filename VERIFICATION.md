@@ -2,6 +2,15 @@
 
 Initial local checks used build 20002 on October 19, 2026 with Xcode 27.1 (27A9275), macOS 27.0.1, Apple Silicon. The existing v2.0 Preview folder was not edited. Initial distribution used build 20003; the setup follow-up uses build 20004.
 
+## Mac metadata correction — October 22
+
+- Verified iOS Ready for Distribution and the Mac review message naming Apple terms in the subtitle under guideline 5.2.5. No application behavior/code fix was requested in that message.
+- Saved neutral shared App Information subtitles in English and Simplified Chinese. The released iOS binary/version was not changed, withdrawn or resubmitted; the page labels metadata edits as changes for the next release.
+- Revised only the third Mac panel's headline in each locale, then regenerated the asset exports/contact sheets. Git confirms the other Mac panels and all iPhone/iPad panels are unchanged. Both replacement PNGs passed visual inspection, 2880×1800 dimensions, PNG format and no-alpha validation. Renderer syntax and whitespace checks passed; an application rebuild/test run was unnecessary for this metadata-only correction.
+- Uploaded the two replacements, removed the superseded panels only from the Mac listing (retained in Asset Library), and confirmed three panels per locale.
+- Verified the correction reply is present in the review thread. Resubmitted unchanged Mac 2.0 (20004) and confirmed Waiting for Review at 4:12 PM Eastern. Evidence: Artifacts/Submission/mac-resubmitted-20004-2026-10-22.png.
+- This does not guarantee Mac approval or address unrelated Calendar ghost-display/OS behavior. Regional download availability and App Store search indexing were not independently tested in this turn.
+
 ## Store media and submission — October 20
 
 - Captured the real build 20004 interface using fictional built-in tasks on an isolated Mac app, iPhone simulator and iPad 13-inch simulator, in English and Simplified Chinese. No personal Apple permissions or actual saves were performed for these captures.
@@ -63,7 +72,7 @@ Apple's [EventKit access documentation](https://developer.apple.com/documentatio
 
 ## Not yet verified / release blockers
 
-- Apple's review of both platforms and manual public release. Genuine localized store screenshots, saved metadata, approved declarations, public privacy/support links, signing/upload and both review submissions are complete. No public release has occurred.
+- Apple's review of the corrected Mac metadata and subsequent manual Mac release. iOS is Ready for Distribution and reported released by the owner; individual storefront/search availability has not been audited. Initial upload/submission history and the Mac resubmission are recorded above.
 - Real Mac/iPhone/iPad permission grants, list/calendar creation, saves and notification delivery with the new production identity. No access to personal Reminders/Calendar was granted during these checks.
 - Physical iPhone/iPad operation, iPad orientations, minimum supported OS behavior, VoiceOver and full Dynamic Type coverage. The portrait iPad simulator review/editor/settings layouts were visibly checked during store capture, not physical-device notification behavior.
 - Calendar's earlier reported ghost display is not claimed repaired.

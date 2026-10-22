@@ -24,10 +24,10 @@
 - [x] English and Simplified Chinese listing metadata, public support links, private review contacts and testing notes saved for both platforms.
 - [x] Signed distribution archives with dSYMs exported and uploaded for version 2.0 (20003) on both platforms. Both upload logs report success; Apple processing succeeded and the builds are attached to their release pages.
 - [x] Owner testing internal TestFlight group contains both builds as Ready to Test. Only the owner was added, with explicit approval; the owner subsequently installed and tested build 20003. Automatic build distribution is off.
-- [x] Manual public release selected for both platforms. Mac and iOS App Review submissions completed October 20; no public release has occurred.
+- [x] Manual public release was selected for both initial submissions October 20. On October 22, iOS shows Ready for Distribution and the owner reports it released; Mac remains manual release after review.
 - [x] Setup follow-up build 20004 compiled, archived, uploaded and processed for Mac/iOS; added to the same owner TestFlight group. Local tests cover old guide preferences, first presentation, restart instructions, approval/pending/revoked state and late refresh. Owner reported the rest of build 20003 working; the new connection flow still requires their device recheck.
 
-## Remaining before public release
+## Release verification and remaining Mac release work
 
 - [x] Owner accepted TestFlight and tested build 20003. Follow-up build 20004 is available; a separate explicit device recheck of the revised connection flow has not been recorded. See [DEVICE-TEST.md](DEVICE-TEST.md).
 - [ ] Complete real-device testing on iPhone/iPad and sandboxed Mac with dedicated test list/calendar: grant/deny/re-grant, destination creation, two identical imports, same-day deadlines, notifications, timezone/DST, Photos, Files, multitasking and accessibility.
@@ -37,7 +37,9 @@
 - [x] Resolve current App Store Connect validation: Chinese privacy-policy link added, screenshots processed and both submissions accepted into Waiting for Review. Selecting all storefronts does not establish country-specific legal clearance; address any later applicable requirement if raised.
 - [x] Submit macOS 2.0 (20004) for App Review; status Waiting for Review, October 20, 2026.
 - [x] Submit iOS 2.0 (20004) for App Review; status Waiting for Review, October 20, 2026.
-- [ ] Address review feedback for either platform if any and perform the selected manual release after approval.
+- [x] iOS 2.0 shows Ready for Distribution on October 22; owner reports it released. The released iOS binary was not modified during the Mac correction.
+- [x] Address the October 22 Mac guideline 5.2.5 subtitle issue in English/Chinese, neutralize the third Mac screenshot headline, reply to App Review and resubmit unchanged build 20004. Verified Waiting for Review at 4:12 PM Eastern.
+- [ ] Address additional Mac feedback if any and perform the selected manual Mac release after approval. Audit individual storefront/search availability separately if needed.
 
 Suggested archive command after signing and public policy are ready:
 

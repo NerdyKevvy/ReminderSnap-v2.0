@@ -12,7 +12,9 @@ Layout source: `Scripts/render-store-media.cjs` (Node + sharp). Input captures r
 
 Output sizes: Mac 2880×1800; iPhone large 1320×2868 and medium 1206×2622; iPad 13-inch portrait 2064×2752. Upload the sizes requested by the live App Store Connect media manager; smaller device families may inherit scaled images.
 
-On October 20, 2026, three panels per locale were uploaded for Mac, iPhone Dynamic Island medium and iPad 13-inch: 18 uploaded images in total. The large iPhone set is retained as an optional export, not uploaded into the medium-size slot. All 24 generated PNGs passed dimension/format/no-alpha checks. Apple finished processing the uploaded screenshots, and both platform submissions reached Waiting for Review. No public release has occurred.
+On October 20, 2026, three panels per locale were uploaded for Mac, iPhone Dynamic Island medium and iPad 13-inch: 18 uploaded images in total. The large iPhone set is retained as an optional export, not uploaded into the medium-size slot. All 24 generated PNGs passed dimension/format/no-alpha checks. Apple finished processing the uploaded screenshots, and both platform submissions reached Waiting for Review.
+
+On October 22, App Store Connect showed iOS Ready for Distribution and macOS Rejected under guideline 5.2.5 for Apple wording in the subtitle. The subtitle was corrected separately in both languages. As a precaution, only the third Mac panel was revised to a neutral headline: "Your tasks. Your day." / "你的任务，日程更清晰。" The replacement was uploaded as `03-tasks-and-calendar.png`, leaving three panels per locale. Its tracked file remains `macOS/03-apple-and-icloud.png`. The other panels, including released iPhone/iPad assets, are unchanged. Original Mac panels are retained in ignored `Artifacts/StoreMedia/Pre-5.2.5-2026-10-22/` and Apple's Asset Library.
 
 Rebuild with `node Scripts/render-store-media.cjs`, using a Node environment where sharp is available. Optional arguments `mac iphone ipad` select the sets to render. Contact-sheet previews and the capture-to-output manifest are written into ignored `Artifacts/StoreMedia/`.
 

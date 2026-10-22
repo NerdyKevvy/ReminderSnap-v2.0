@@ -1,6 +1,6 @@
 # ReminderSnap 2.0 — upload status
 
-Updated October 20, 2026. This records upload and submission work, not App Review approval or public release.
+Updated October 22, 2026. Current state: iOS Ready for Distribution; macOS resubmitted and Waiting for Review.
 
 ## App record
 
@@ -12,6 +12,16 @@ Updated October 20, 2026. This records upload and submission work, not App Revie
 - [App Store Connect](https://appstoreconnect.apple.com/apps/6824731033/distribution)
 - Source: [ReminderSnap-v2.0](https://github.com/NerdyKevvy/ReminderSnap-v2.0). Initial build 20003 used release source commit a857b69; build 20004 adds the setup follow-up described below.
 
+## October 22 review outcome and metadata correction
+
+- Verified the iOS version 2.0 sidebar status is Ready for Distribution. The owner reports the iOS app is released and reachable by its App Store link. This turn did not change, withdraw, replace or resubmit the released iOS binary; country-by-country availability and search indexing were not audited.
+- Mac review rejected version 2.0 (20004) under guideline 5.2.5, specifically for Apple terms in the subtitle. No code defect or binary change was requested in that report.
+- Saved neutral English and Simplified Chinese subtitles: "Screenshots to tasks" and "截图识别，轻松创建待办与日程". These fields are shared App Information; Apple's page says changes release with the next app version, rather than being Mac-only fields.
+- As a precaution, replaced only the third Mac screenshot in both languages with neutral headlines. The listing still has three panels per locale, and the former panels remain in Apple's Asset Library and a local ignored archive. No released iPhone/iPad screenshots were changed.
+- Sent a factual reply to App Review at 4:11 PM Eastern describing the metadata corrections; no new legal agreement or compliance declaration was accepted.
+- Resubmitted the same Mac build 20004 at 4:12 PM Eastern on October 22. Verified both the submission and its app-version item show Waiting for Review. Submission ID remains 1e9ef1ae-175f-4905-acf0-2ebf5e05e9bd. Mac manual release remains selected; Mac approval/public release has not occurred.
+- The two revised PNGs passed exact 2880×1800, PNG/no-alpha checks and visual inspection. Renderer syntax and git diff whitespace checks passed. No application code or binary was changed, rebuilt or uploaded.
+
 ## Setup follow-up — build 20004
 
 - Owner tested build 20003: app functionality was reported working, with Calendar permission display needing one restart and the initial TestFlight guide not appearing.
@@ -19,14 +29,14 @@ Updated October 20, 2026. This records upload and submission work, not App Revie
 - Permission callbacks acknowledge approval immediately, with a separate pending-confirmation state when needed. EventKit cache reset and longer bounded refresh remain in place; actual system-confirmed full access still gates saves.
 - New migration/approval/refresh tests, full regression/OCR/PDF/CLI checks, Mac build and iOS simulator build passed. The guide appeared automatically in an isolated Mac app and iPhone simulator; finishing and relaunching the Mac app did not repeat the guide. No personal Calendar/Reminders permissions or entries were changed.
 - Both signed archives and uploads succeeded. Apple processed both build 20004 uploads, and both are Ready to Test in Owner testing. The group has one tester and four builds, retaining the two older builds for comparison. No new tester invitation was sent.
-- Real-device recheck of the revised Calendar connection flow remains pending. Build 20004 is not an App Review approval or a public release.
+- A separate explicit real-device recheck of the revised Calendar connection flow has not been recorded. Build availability by itself does not prove device behavior; the later iOS review outcome is recorded above.
 
 ## Completed
 
 - Created black/silver product-page panels around genuine fictional-sample captures. Uploaded three each for Mac, iPhone Dynamic Island medium and iPad 13-inch in English and Simplified Chinese (18 images). No owner calendar, reminder list or personal course screenshot was published. Optional larger iPhone exports are retained locally.
 - Corrected the required Chinese privacy-policy URL to the already published bilingual policy. The published Data Not Collected response was not changed.
-- Mac version 2.0 (20004) passed App Store Connect validation and was submitted on October 20 at 11:11 AM Eastern. Confirmed status: Waiting for Review. Submission ID: 1e9ef1ae-175f-4905-acf0-2ebf5e05e9bd. Manual public release remains selected.
-- After screenshot processing completed, iOS version 2.0 (20004), including iPhone/iPad, passed validation and was submitted on October 20 at 11:14 AM Eastern. Confirmed status: Waiting for Review. Submission ID: 67142bc3-9749-4061-b295-cbfcd3cb1cd7. Manual public release remains selected. The submissions page shows both platform versions Waiting for Review and zero draft submissions.
+- Mac version 2.0 (20004) passed App Store Connect validation and was initially submitted on October 20 at 11:11 AM Eastern. Its October 22 correction/resubmission is recorded above.
+- After screenshot processing completed, iOS version 2.0 (20004), including iPhone/iPad, passed validation and was submitted on October 20 at 11:14 AM Eastern. Submission ID: 67142bc3-9749-4061-b295-cbfcd3cb1cd7. Both initial submissions were then Waiting for Review; the current iOS outcome is recorded above.
 - Verified Xcode account and GitHub connection. Preserved the owner's untracked Xcode Cloud configuration.
 - Registered the approved permanent bundle ID and created one Mac/iOS App Store Connect record. Existing-team Full Access was explicitly approved.
 - Created signing certificates and an iOS App Store provisioning profile with owner approval. Private signing keys remain in the Mac Keychain; none were committed to GitHub.
@@ -44,7 +54,7 @@ Updated October 20, 2026. This records upload and submission work, not App Revie
 - Owner updates TestFlight to build 20004 and checks the revised guide and Calendar connection flow. No repeat invitation acceptance is needed. See [device test checklist](DEVICE-TEST.md).
 - Real-device persistence, permissions and notification testing, including iPad layout, minimum-OS checks and accessibility. No personal Apple reminders/events were written during the upload work.
 - Address any App Store Connect validation or applicable regional requirements shown during final submission. The selected storefronts are not a legal certification for every country.
-- Apple's review of both submitted platform versions, any review feedback, and the selected manual public release after approval. Neither platform is approved or publicly released.
+- Apple's review of the corrected Mac submission, any additional feedback, and the selected Mac manual public release after approval. iOS is already Ready for Distribution. Investigate the owner's reported iOS search visibility separately if it persists.
 
 ## Local evidence
 
@@ -71,6 +81,7 @@ Updated October 20, 2026. This records upload and submission work, not App Revie
 - Artifacts/Submission/store-ios-media-zh.png
 - Artifacts/Submission/mac-submitted-20004.png
 - Artifacts/Submission/both-submitted-20004.png
+- Artifacts/Submission/mac-resubmitted-20004-2026-10-22.png
 - Artifacts/StoreMedia/preview-en-US.png
 - Artifacts/StoreMedia/preview-zh-Hans.png
 
