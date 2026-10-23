@@ -14,6 +14,11 @@
 <key>LSRequiresIPhoneOS</key><true/>
 <key>ITSAppUsesNonExemptEncryption</key><false/>
 <key>ReminderSnapPrivacyPolicyURL</key><string>$(REMINDERSNAP_PRIVACY_POLICY_URL)</string>
+<key>ReminderSnapCloudSyncEnabled</key><true/>
+<key>GIDClientID</key><string>$(GOOGLE_CLIENT_ID)</string>
+<key>CFBundleURLTypes</key><array><dict><key>CFBundleURLSchemes</key><array><string>$(GOOGLE_REVERSED_CLIENT_ID)</string></array></dict></array>
+<key>UIBackgroundModes</key><array><string>remote-notification</string></array>
+<key>NSCameraUsageDescription</key><string>Photograph an assignment page or laptop screen to read its deadlines locally. Photos are not uploaded.</string>
 <key>UILaunchScreen</key><dict/>
 <key>UIApplicationSceneManifest</key><dict><key>UIApplicationSupportsMultipleScenes</key><false/></dict>
 <key>UISupportedInterfaceOrientations</key><array><string>UIInterfaceOrientationPortrait</string><string>UIInterfaceOrientationLandscapeLeft</string><string>UIInterfaceOrientationLandscapeRight</string></array>

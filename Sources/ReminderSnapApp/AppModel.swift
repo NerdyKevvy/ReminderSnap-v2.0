@@ -10,12 +10,14 @@ import EventKit
 import ReminderSnapCore
 
 enum OutputMode: String, CaseIterable, Identifiable {
+    case local = "ReminderSnap only"
+    case google = "Google Calendar"
     case reminders = "Reminders only"
     case calendar = "Calendar only"
     case both = "Reminders + Calendar"
     var id: String { rawValue }
-    var usesReminders: Bool { self != .calendar }
-    var usesCalendar: Bool { self != .reminders }
+    var usesReminders: Bool { self == .reminders || self == .both }
+    var usesCalendar: Bool { self == .calendar || self == .both }
 }
 
 @MainActor
@@ -31,7 +33,33 @@ final class AppModel: ObservableObject {
     @Published var isDemo = false
     @Published var showingCalendarHelp = false
     @Published var showingImporter = false
-    @Published var page: StudioPage = .addReminder
+    @Published var page: StudioPage = .calendar
+    let planner = PlannerStore()
+    let notifications = PlannerNotifications()
+    let googleCalendar = GoogleCalendarConnection()
+    let appleExporter = AppleTaskExporter()
+    @Published var selectedSavedTask: SavedAssignment?
+    @Published var selectedAppleEvent: LinkedAppleEventReference?
+    @Published var workflowNotice = ""
+    @Published var showingMissingDetails = false
+    @Published var showingCamera = false
+    @Published var calendarDate = Date()
+    @Published var showSampleCalendar = false
+    @Published var showingExternalSampleConfirmation = false
+    @Published var plannerNotificationsEnabled: Bool = UserDefaults.standard.bool(forKey: "Planner.NotificationsEnabled") {
+        didSet { UserDefaults.standard.set(plannerNotificationsEnabled, forKey: "Planner.NotificationsEnabled"); refreshPlannerAlerts() }
+    }
+    @Published var appAlertLeadTimes: [TimeInterval] = UserDefaults.standard.array(forKey: "Planner.AlertLeadTimes") as? [Double] ?? [86400, 7200] {
+        didSet { UserDefaults.standard.set(appAlertLeadTimes, forKey: "Planner.AlertLeadTimes") }
+    }
+    @Published var dateOnlyAlertHour = UserDefaults.standard.object(forKey: "Planner.DateOnlyHour") as? Int ?? 9 {
+        didSet { UserDefaults.standard.set(dateOnlyAlertHour, forKey: "Planner.DateOnlyHour") }
+    }
+    @Published var showOtherSections = false
+    @Published var includeSubmitted = false
+    var isExporting = false
+    var pendingNotificationTaskID: UUID?
+    var plannerObservers = Set<AnyCancellable>()
     @Published var showingClearConfirmation = false
     @Published var previewSaved = false
     @Published var importedFileCount = 0
@@ -62,9 +90,9 @@ final class AppModel: ObservableObject {
     @Published var outputMode: OutputMode {
         didSet {
             UserDefaults.standard.set(outputMode.rawValue, forKey: "ReminderSnap.OutputMode")
-            defaultCompanionEventsEnabled = outputMode.usesCalendar
-            UserDefaults.standard.set(outputMode.usesCalendar, forKey: DefaultsKey.companionEventsEnabled)
-            for index in items.indices { items[index].companionEventEnabled = outputMode.usesCalendar }
+            defaultCompanionEventsEnabled = outputMode.usesCalendar || outputMode == .google
+            UserDefaults.standard.set(defaultCompanionEventsEnabled, forKey: DefaultsKey.companionEventsEnabled)
+            for index in items.indices { items[index].companionEventEnabled = defaultCompanionEventsEnabled }
         }
     }
     // Batch context is session-only; never guess a missing year from today's date.
@@ -76,8 +104,8 @@ final class AppModel: ObservableObject {
     @Published private(set) var defaultCompanionEventStartAlertEnabled: Bool
     @Published private(set) var defaultCompanionEventAdditionalLeadTimes: [TimeInterval]
 
-    private let reminderService = RemindersService()
-    private let calendarEventService = CalendarEventService()
+    let reminderService = RemindersService()
+    let calendarEventService = CalendarEventService()
     private var matches: [UUID: ReminderMatch] = [:]
     private var activeImport: Task<Void, Never>?
     private var importID = UUID()
@@ -112,17 +140,18 @@ final class AppModel: ObservableObject {
         defaultCompanionEventsEnabled = defaults.object(forKey: DefaultsKey.companionEventsEnabled) == nil ? true : defaults.bool(forKey: DefaultsKey.companionEventsEnabled)
         defaultCompanionEventStartAlertEnabled = defaults.object(forKey: DefaultsKey.companionEventStartAlertEnabled) == nil ? true : defaults.bool(forKey: DefaultsKey.companionEventStartAlertEnabled)
         defaultCompanionEventAdditionalLeadTimes = Self.normalizedCalendarLeadTimes(defaults.array(forKey: DefaultsKey.companionEventAdditionalLeadTimes) as? [Double] ?? [86_400])
-        outputMode = defaults.string(forKey: "ReminderSnap.OutputMode").flatMap(OutputMode.init(rawValue:)) ?? .both
+        outputMode = defaults.string(forKey: "ReminderSnap.OutputMode").flatMap(OutputMode.init(rawValue:)) ?? .local
         refreshDestinations()
         storeObserver = NotificationCenter.default.publisher(for: .EKEventStoreChanged)
             .debounce(for: .milliseconds(200), scheduler: RunLoop.main)
             .sink { [weak self] _ in self?.requestAccessRefresh() }
+        configurePlanner()
     }
 
     func t(_ key: String, _ arguments: String...) -> String { Localizer.text(key, language: language, arguments: arguments) }
     func t(_ message: LocalizedMessage) -> String { message.rendered(in: language) }
     func copy(_ english: String, _ chinese: String) -> String { language == .english ? english : chinese }
-    var selectedCount: Int { items.filter(\.isSelected).count }
+    var selectedCount: Int { visibleImportItems.filter(\.isSelected).count }
     var reviewCount: Int { items.filter { !$0.candidate.warnings.isEmpty || $0.candidate.dueDate == nil || $0.candidate.courseCode.isEmpty }.count }
     var targetListName: String { reminderLists.first { $0.id == selectedListID }?.name ?? "Choose a list" }
     var canCancelImport: Bool { activeImport != nil }
@@ -170,6 +199,7 @@ final class AppModel: ObservableObject {
     func checkAccessAgain() { requestAccessRefresh(reconnect: true) }
 
     func sceneBecameActive() {
+        Task { await planner.open(); await notifications.refresh(); refreshPlannerAlerts(); await flushPendingExports() }
         if setupGuide.needsPresentation && !didPresentGuideThisSession {
             didPresentGuideThisSession = true
             showingSetup = true
@@ -214,14 +244,14 @@ final class AppModel: ObservableObject {
     func finishSetup() {
         setupGuide.complete()
         showingSetup = false
-        page = .addReminder
+        page = .calendar
     }
 
     func destinationChanged() {
         guard !isProcessing, !isDemo else { return }
         for index in items.indices {
             items[index].status = items[index].candidate.warnings.isEmpty ? .ready : .needsReview
-            items[index].isSelected = items[index].candidate.dueDate != nil && !items[index].candidate.courseCode.isEmpty
+            items[index].isSelected = items[index].candidate.dueDate != nil
         }
         Task { await refreshMatches() }
     }
@@ -371,12 +401,12 @@ final class AppModel: ObservableObject {
     func simulateSave() {
         guard isDemo, selectedCount > 0 else { return }
         previewSaved = true
+        showSampleCalendar = true; page = .calendar
         statusMessage = LocalizedMessage(verbatim: copy("Preview complete. No Apple data was written.", "预览完成，未写入 Apple 数据。"))
     }
 
     func confirmReviewed(_ id: UUID) {
-        guard let index = items.firstIndex(where: { $0.id == id }), items[index].candidate.dueDate != nil,
-              !items[index].candidate.courseCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        guard let index = items.firstIndex(where: { $0.id == id }), items[index].candidate.dueDate != nil else { return }
         items[index].candidate.warnings = []
         items[index].status = .ready
         saveCompleted = false; previewSaved = false
@@ -410,11 +440,28 @@ final class AppModel: ObservableObject {
     }
 
     private func loadItems(_ candidates: [AssignmentCandidate]) {
-        items = candidates.map {
-            ImportItem(candidate: $0, deadlineNotificationEnabled: defaultDeadlineNotificationEnabled,
-                       companionEventEnabled: outputMode.usesCalendar,
+        items = candidates.map { source in
+            var candidate = source
+            if let profile = planner.courses.first(where: { $0.id == candidate.courseTag }) {
+                if let text = candidate.sourceDeadlineText,
+                   let date = DeadlineParser.parse(text, fallbackYear: Int(batchYear) ?? profile.year, fallbackTimeZone: batchTimeZone.isEmpty ? profile.timeZoneIdentifier : batchTimeZone) {
+                    candidate.dueDate = date.date; candidate.hasExplicitTime = date.hasExplicitTime
+                    candidate.timeZoneIdentifier = date.timeZoneIdentifier
+                }
+            }
+            var item = ImportItem(candidate: candidate, deadlineNotificationEnabled: defaultDeadlineNotificationEnabled,
+                       companionEventEnabled: outputMode.usesCalendar || outputMode == .google,
                        companionEventStartAlertEnabled: defaultCompanionEventStartAlertEnabled,
                        companionEventAdditionalLeadTimes: defaultCompanionEventAdditionalLeadTimes)
+            item.appAlertLeadTimes = appAlertLeadTimes
+            if !SectionSelection.matches(candidate, profile: planner.courses.first(where: { $0.id == candidate.courseTag })) {
+                item.isSelected = false
+            }
+            if candidate.submissionStatus?.lowercased().contains("submitted") == true &&
+               candidate.submissionStatus?.lowercased().contains("no submission") != true {
+                item.isSelected = false
+            }
+            return item
         }
     }
 
@@ -435,6 +482,8 @@ final class AppModel: ObservableObject {
     }
     func applyNotificationDefaultsToAll() {
         for index in items.indices {
+            items[index].appAlertLeadTimes = appAlertLeadTimes
+            items[index].appAlertsEnabled = true
             items[index].deadlineNotificationEnabled = defaultDeadlineNotificationEnabled
             items[index].companionEventStartAlertEnabled = defaultCompanionEventStartAlertEnabled
             items[index].companionEventAdditionalLeadTimes = defaultCompanionEventAdditionalLeadTimes
@@ -442,6 +491,7 @@ final class AppModel: ObservableObject {
     }
     func setAllNotifications(_ enabled: Bool) {
         for index in items.indices {
+            items[index].appAlertsEnabled = enabled
             items[index].deadlineNotificationEnabled = enabled
             items[index].companionEventStartAlertEnabled = enabled
             items[index].companionEventAdditionalLeadTimes = enabled ? defaultCompanionEventAdditionalLeadTimes : []
@@ -452,53 +502,14 @@ final class AppModel: ObservableObject {
         for index in items.indices { items[index].companionEventEnabled = enabled }
     }
     func setAllSelected(_ selected: Bool) {
-        for index in items.indices where items[index].candidate.dueDate != nil && !items[index].candidate.courseCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        let visible = Set(visibleImportItems.map(\.id))
+        for index in items.indices where items[index].candidate.dueDate != nil && (!selected || visible.contains(items[index].id)) {
             items[index].isSelected = selected
         }
     }
 
     func addSelected() {
-        guard !isProcessing, !isDemo else { return }
-        let selected = items.filter(\.isSelected)
-        guard !selected.isEmpty else { statusMessage = "Select at least one task."; return }
-        guard selected.allSatisfy({ $0.candidate.dueDate != nil && !$0.candidate.courseCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) else {
-            statusMessage = "Every selected task needs a course and valid deadline."; return
-        }
-        refreshDestinations()
-        guard !destinationNeedsRepair else {
-            setupMessage = "Choose a writable destination and check permissions before saving."
-            page = .userGuide; return
-        }
-        let mode = outputMode, listID = selectedListID, listName = targetListName, calendarID = selectedCalendarID
-        let blocks = selected.filter { mode == .calendar || $0.companionEventEnabled }
-        if !mode.usesReminders && blocks.isEmpty { statusMessage = "Enable at least one Calendar block."; return }
-        isProcessing = true
-        statusMessage = "Saving reviewed tasks…"
-        Task {
-            defer { isProcessing = false }
-            var summary: [LocalizedMessage] = []
-            do {
-                if mode.usesReminders {
-                    let fresh = try await reminderService.matches(candidates: selected.map(\.candidate), listName: listName, listID: listID)
-                    let result = try reminderService.write(requests: selected.map {
-                        ReminderWriteRequest(candidate: $0.candidate, deadlineNotificationEnabled: $0.deadlineNotificationEnabled)
-                    }, matches: fresh, listName: listName, listID: listID)
-                    summary.append("Reminders: \(result.created) added, \(result.updated) updated, \(result.unchanged) unchanged.")
-                }
-                if mode.usesCalendar && !blocks.isEmpty {
-                    let result = try calendarEventService.upsert(requests: blocks.map {
-                        CompanionEventRequest(candidate: $0.candidate, notifyAtStart: $0.companionEventStartAlertEnabled, additionalNotificationLeadTimes: $0.companionEventAdditionalLeadTimes)
-                    }, calendarID: calendarID)
-                    summary.append("Calendar blocks: \(result.created) added, \(result.updated) updated, \(result.unchanged) unchanged.")
-                }
-                statusMessage = .joined(summary + ["Temporary recognized text cleared."])
-                saveCompleted = true
-                documents = []
-                await refreshMatches()
-            } catch {
-                statusMessage = .joined(summary + [LocalizedMessage(verbatim: error.localizedDescription)])
-            }
-        }
+        saveReviewedAssignments()
     }
 
     private func finishImport(_ candidates: [AssignmentCandidate], documents docs: [OCRDocument], errors: [String], readTime: TimeInterval, parseTime: TimeInterval, token: UUID) async {
@@ -517,6 +528,12 @@ final class AppModel: ObservableObject {
         }
         isProcessing = false; activeImport = nil
         cleanPhotoCopies()
+        showingMissingDetails = candidates.contains { $0.dueDate == nil || $0.courseCode.isEmpty || $0.assignmentName.isEmpty } ||
+            candidates.contains { candidate in
+                (candidate.sectionCode != nil && planner.courses.first(where: { $0.id == candidate.courseTag })?.section.isEmpty != false) ||
+                (!candidate.courseCode.isEmpty && !planner.courses.contains(where: { $0.id == candidate.courseTag }) &&
+                 (candidate.sourceDeadlineText ?? "").range(of: #"\b(?:EDT|EST|PDT|PST|CDT|CST|MDT|MST|UTC|GMT)\b"#, options: .regularExpression) == nil)
+            }
     }
 
     private func finishWithError(_ message: LocalizedMessage, token: UUID) {

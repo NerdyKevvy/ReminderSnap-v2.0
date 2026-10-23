@@ -79,6 +79,10 @@ struct CaptureView: View {
         PhotosPicker(selection: $photos, maxSelectionCount: 20, matching: .images) {
             Label(photosTitle, systemImage: "photo.on.rectangle")
         }.buttonStyle(QuietButtonStyle())
+        #if os(iOS)
+        Button { model.takePhoto() } label: { Label(model.copy("Take Photo", "拍摄照片"), systemImage: "camera") }
+            .buttonStyle(QuietButtonStyle()).accessibilityIdentifier("import.camera")
+        #endif
         if model.items.isEmpty {
             Button(model.copy("Try Sample", "体验示例")) { model.showSample() }
                 .buttonStyle(QuietButtonStyle()).accessibilityIdentifier("import.sample")

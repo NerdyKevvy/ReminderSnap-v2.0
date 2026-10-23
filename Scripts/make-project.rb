@@ -9,6 +9,9 @@ FileUtils.mkdir_p(project)
 def uid(value); Digest::SHA256.hexdigest(value)[0,24].upcase; end
 def quote(value); value.to_s.to_json; end
 objects = {}
+google_file = File.join(root, 'Resources/GoogleOAuth.json')
+google_client = File.exist?(google_file) ? JSON.parse(File.read(google_file)).fetch('client_id', '') : ''
+google_scheme = google_client.empty? ? 'com.nerdykevvy.ReminderSnap.oauth-unconfigured' : google_client.split('.').reverse.join('.')
 add = lambda { |key, body| objects[uid(key)] = body; uid(key) }
 sources = Dir.glob(File.join(root, 'Sources/ReminderSnapApp/*.swift')).sort.map { |p| p.delete_prefix(root + '/') }
 sources.each { |p| add.call(p, "isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = #{quote(p)}; sourceTree = SOURCE_ROOT;") }
@@ -32,7 +35,10 @@ products = []
   configs = %w[Debug Release].map do |config|
     settings = {
       'PRODUCT_NAME'=>'ReminderSnap', 'EXECUTABLE_NAME'=>'ReminderSnap', 'PRODUCT_BUNDLE_IDENTIFIER'=>'com.nerdykevvy.ReminderSnap',
-      'SWIFT_VERSION'=>'5.0', 'MARKETING_VERSION'=>'2.0', 'CURRENT_PROJECT_VERSION'=>'20004',
+      'SWIFT_VERSION'=>'5.0', 'MARKETING_VERSION'=>'2.1', 'CURRENT_PROJECT_VERSION'=>'20100',
+      'GOOGLE_CLIENT_ID'=>google_client, 'GOOGLE_REVERSED_CLIENT_ID'=>google_scheme,
+      'CLOUDKIT_ENVIRONMENT'=>config == 'Debug' ? 'Development' : 'Production',
+      'APS_ENVIRONMENT'=>config == 'Debug' ? 'development' : 'production',
       'CODE_SIGN_STYLE'=>'Automatic', 'DEVELOPMENT_TEAM'=>'Z977ASQ4T3', 'GENERATE_INFOPLIST_FILE'=>'NO', 'SWIFT_EMIT_LOC_STRINGS'=>'YES',
       'SWIFT_OPTIMIZATION_LEVEL'=>config == 'Debug' ? '-Onone' : '-O',
       'ONLY_ACTIVE_ARCH'=>config == 'Debug' ? 'YES' : 'NO',
@@ -43,7 +49,7 @@ products = []
     if platform == 'macOS'
       settings.merge!('SDKROOT'=>'macosx', 'MACOSX_DEPLOYMENT_TARGET'=>'13.0', 'INFOPLIST_FILE'=>'Resources/MacInfo.plist', 'CODE_SIGN_ENTITLEMENTS'=>'Resources/Mac.entitlements', 'ENABLE_HARDENED_RUNTIME'=>'YES', 'SUPPORTED_PLATFORMS'=>'macosx')
     else
-      settings.merge!('SDKROOT'=>'iphoneos', 'IPHONEOS_DEPLOYMENT_TARGET'=>'17.0', 'INFOPLIST_FILE'=>'Resources/iOSInfo.plist', 'TARGETED_DEVICE_FAMILY'=>'1,2', 'SUPPORTED_PLATFORMS'=>'iphoneos iphonesimulator', 'SUPPORTS_MACCATALYST'=>'NO', 'ASSETCATALOG_COMPILER_APPICON_NAME'=>'AppIcon')
+      settings.merge!('SDKROOT'=>'iphoneos', 'IPHONEOS_DEPLOYMENT_TARGET'=>'17.0', 'INFOPLIST_FILE'=>'Resources/iOSInfo.plist', 'CODE_SIGN_ENTITLEMENTS'=>'Resources/iOS.entitlements', 'TARGETED_DEVICE_FAMILY'=>'1,2', 'SUPPORTED_PLATFORMS'=>'iphoneos iphonesimulator', 'SUPPORTS_MACCATALYST'=>'NO', 'ASSETCATALOG_COMPILER_APPICON_NAME'=>'AppIcon')
     end
     settings['SWIFT_ACTIVE_COMPILATION_CONDITIONS'] = 'DEBUG' if config == 'Debug'
     add.call("#{platform}-#{config}", "isa = XCBuildConfiguration; name = #{config}; buildSettings = { #{settings.map { |k,v| "#{k} = #{quote(v)};" }.join(' ')} };")
@@ -70,6 +76,6 @@ prod = add.call('product-group', "isa = PBXGroup; children = (#{products.join(',
 main = add.call('main-group', "isa = PBXGroup; children = (#{group},#{res},#{prod},); sourceTree = \"<group>\";")
 configs = %w[Debug Release].map { |c| add.call("project-#{c}", "isa = XCBuildConfiguration; name = #{c}; buildSettings = { CLANG_ENABLE_MODULES = YES; };" ) }
 config_list = add.call('project-configs', "isa = XCConfigurationList; buildConfigurations = (#{configs.join(',')},); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;")
-root_id = add.call('project', "isa = PBXProject; attributes = { BuildIndependentTargetsInParallel = YES; LastUpgradeCheck = 1600; }; buildConfigurationList = #{config_list}; compatibilityVersion = \"Xcode 14.0\"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en, Base, \"zh-Hans\",); mainGroup = #{main}; packageReferences = (#{package},); productRefGroup = #{prod}; projectDirPath = \"\"; projectRoot = \"\"; targets = (#{targets.join(',')},);")
+root_id = add.call('project', "isa = PBXProject; attributes = { BuildIndependentTargetsInParallel = YES; LastUpgradeCheck = 1600; TargetAttributes = { #{targets.map { |target| "#{target} = { SystemCapabilities = { com.apple.iCloud = { enabled = 1; }; com.apple.Push = { enabled = 1; }; }; };" }.join(' ')} }; }; buildConfigurationList = #{config_list}; compatibilityVersion = \"Xcode 14.0\"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en, Base, \"zh-Hans\",); mainGroup = #{main}; packageReferences = (#{package},); productRefGroup = #{prod}; projectDirPath = \"\"; projectRoot = \"\"; targets = (#{targets.join(',')},);")
 File.write(File.join(project, 'project.pbxproj'), "// !$*UTF8*$!\n{ archiveVersion = 1; classes = {}; objectVersion = 56; objects = {\n" + objects.map { |key, body| "#{key} = { #{body} };" }.join("\n") + "\n}; rootObject = #{root_id}; }\n")
 puts "Generated #{project}"

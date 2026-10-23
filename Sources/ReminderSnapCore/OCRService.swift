@@ -90,29 +90,84 @@ public final class OCRService {
     private func recognize(image: CGImage, name: String) throws -> OCRDocument {
         var lines = try read(image)
         var method = "Apple Vision • local"
+        // Mobile Gradescope wraps short names and a single underlined number.
+        // Re-read just that narrow column without dictionary correction, which
+        // otherwise drops digits or turns a handwritten-looking 7 into Z.
+        if let header = lines.first(where: { $0.text.lowercased().contains("name") && $0.topDownY < 0.5 }),
+           let status = lines.first(where: { $0.text.lowercased().contains("status") && abs($0.topDownY - header.topDownY) < 0.04 }),
+           lines.contains(where: { $0.text.lowercased() == "released" }),
+           lines.contains(where: { $0.text.lowercased().hasPrefix("homework") && $0.text.split(separator: " ").count == 1 }) {
+            let left = max(0, header.boundingBox.minX - 0.04)
+            let right = max(left + 0.03, status.centerX - 0.01)
+            let region = CGRect(x: left, y: 0, width: right - left, height: max(0.05, header.boundingBox.minY - 0.01))
+            let rect = CGRect(x: region.minX * CGFloat(image.width), y: (1 - region.maxY) * CGFloat(image.height), width: region.width * CGFloat(image.width), height: region.height * CGFloat(image.height)).integral
+            if let crop = image.cropping(to: rect) {
+                let input = CIImage(cgImage: crop).transformed(by: CGAffineTransform(scaleX: 2, y: 2))
+                if let enlarged = imageContext.createCGImage(input, from: input.extent) {
+                    let fragments = try read(enlarged, languageCorrection: false).map {
+                        OCRLine(text: $0.text, boundingBox: CGRect(x: region.minX + $0.boundingBox.minX * region.width,
+                            y: region.minY + $0.boundingBox.minY * region.height,
+                            width: $0.boundingBox.width * region.width, height: $0.boundingBox.height * region.height), confidence: $0.confidence)
+                    }
+                    if fragments.contains(where: { $0.text.localizedCaseInsensitiveContains("homework") }) {
+                        lines.removeAll { $0.topDownY > header.topDownY && $0.centerX < right && $0.centerX > left }
+                        lines += fragments; method += " • wrapped-name retry"
+                    }
+                }
+            }
+            let words = lines.filter { $0.text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "homework" && $0.topDownY > header.topDownY }
+            for word in words.prefix(8) {
+                let h = word.boundingBox.height
+                let top = word.topDownY + h * 0.55, bottom = min(1, word.topDownY + h * 2.65)
+                guard bottom - top > h, bottom < 0.99 else { continue }
+                let fragment = CGRect(x: max(0, word.boundingBox.minX - h * 0.4), y: 1 - bottom,
+                    width: min(h * 2.4, right - word.boundingBox.minX + h * 0.4), height: bottom - top)
+                let pixels = CGRect(x: fragment.minX * CGFloat(image.width), y: top * CGFloat(image.height),
+                    width: fragment.width * CGFloat(image.width), height: fragment.height * CGFloat(image.height)).integral
+                guard let crop = image.cropping(to: pixels) else { continue }
+                let input = CIImage(cgImage: crop).transformed(by: CGAffineTransform(scaleX: 4, y: 4))
+                guard let enlarged = imageContext.createCGImage(input, from: input.extent) else { continue }
+                let digits = try read(enlarged, languageCorrection: false, numericFragment: true).filter {
+                    $0.text.range(of: #"^\d{1,3}$"#, options: .regularExpression) != nil
+                }.map {
+                    OCRLine(text: $0.text, boundingBox: CGRect(x: fragment.minX + $0.boundingBox.minX * fragment.width,
+                        y: fragment.minY + $0.boundingBox.minY * fragment.height,
+                        width: $0.boundingBox.width * fragment.width, height: $0.boundingBox.height * fragment.height), confidence: $0.confidence)
+                }
+                if !digits.isEmpty {
+                    lines.removeAll { $0.text.count <= 3 && fragment.contains(CGPoint(x: $0.centerX, y: $0.boundingBox.midY)) }
+                    lines += digits
+                }
+            }
+        }
         let dateCount = lines.filter { DeadlineParser.containsDate($0.text) }.count
+        let nameCount = lines.filter {
+            $0.text.range(of: #"\b(?:Homework|Worksheet|Experiment|Lab|Project|Quiz|Assessment|H\d+)\b"#, options: [.regularExpression, .caseInsensitive]) != nil
+        }.count
         // On wide crops Vision can recognize a date column with high confidence
         // while skipping short titles across a large blank gap. Read overlapping
         // columns only when the number of missing non-date lines suggests this.
-        if image.width > image.height * 2, dateCount > 0, lines.count - dateCount < dateCount {
+        if dateCount >= 2 && (lines.count - dateCount < dateCount || nameCount < max(1, dateCount / 3)) {
             var tiled = lines
-            for fraction in [CGFloat(0), CGFloat(0.38)] {
+            let regions: [CGRect] = image.width > image.height ?
+                [CGRect(x: 0, y: 0, width: 0.62, height: 1), CGRect(x: 0.38, y: 0, width: 0.62, height: 1)] :
+                [CGRect(x: 0, y: 0.38, width: 1, height: 0.62), CGRect(x: 0, y: 0, width: 1, height: 0.62)]
+            for region in regions {
                 try Task.checkCancellation()
-                let x = (CGFloat(image.width) * fraction).rounded(.down)
-                let width = min(CGFloat(image.width) - x, (CGFloat(image.width) * 0.62).rounded(.up))
-                guard let tile = image.cropping(to: CGRect(x: x, y: 0, width: width, height: CGFloat(image.height))) else { continue }
+                let pixelRect = CGRect(x: region.minX * CGFloat(image.width), y: (1 - region.maxY) * CGFloat(image.height), width: region.width * CGFloat(image.width), height: region.height * CGFloat(image.height)).integral
+                guard let tile = image.cropping(to: pixelRect) else { continue }
                 let recognized = try autoreleasepool { try read(tile) }
                 tiled += recognized.map {
                     OCRLine(text: $0.text, boundingBox: CGRect(
-                        x: (x + $0.boundingBox.minX * width) / CGFloat(image.width),
-                        y: $0.boundingBox.minY,
-                        width: $0.boundingBox.width * width / CGFloat(image.width),
-                        height: $0.boundingBox.height
+                        x: region.minX + $0.boundingBox.minX * region.width,
+                        y: region.minY + $0.boundingBox.minY * region.height,
+                        width: $0.boundingBox.width * region.width,
+                        height: $0.boundingBox.height * region.height
                     ), confidence: $0.confidence)
                 }
             }
             lines = deduplicated(tiled)
-            method += " • column retry"
+            method += " • layout coverage retry"
         }
         let average = lines.isEmpty ? 0 : lines.map(\.confidence).reduce(0, +) / Float(lines.count)
         // One bounded retry only, for small/weak text; never keep a history of bitmaps.
@@ -129,20 +184,21 @@ public final class OCRService {
         return OCRDocument(sourceName: name, lines: ordered(lines), readingMethod: method)
     }
 
-    private func read(_ image: CGImage) throws -> [OCRLine] {
+    private func read(_ image: CGImage, languageCorrection: Bool = true, numericFragment: Bool = false) throws -> [OCRLine] {
         try Task.checkCancellation()
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate
-        request.usesLanguageCorrection = true
-        request.recognitionLanguages = ["en-US"]
-        request.automaticallyDetectsLanguage = true
+        request.usesLanguageCorrection = languageCorrection
+        request.recognitionLanguages = languageCorrection ? ["en-US", "zh-Hans"] : ["en-US"]
+        request.automaticallyDetectsLanguage = languageCorrection
         request.minimumTextHeight = Float(max(0.0005, 2.0 / Double(image.height)))
         request.customWords = ["WebAssign", "Gradescope", "Brightspace", "Homework", "Deadline"]
         do { try VNImageRequestHandler(cgImage: image, options: [:]).perform([request]) }
         catch { throw OCRServiceError.recognitionFailed(error.localizedDescription) }
         try Task.checkCancellation()
         return (request.results ?? []).compactMap { observation in
-            guard let candidate = observation.topCandidates(1).first else { return nil }
+            let alternatives = observation.topCandidates(numericFragment ? 5 : 1)
+            guard let candidate = (numericFragment ? alternatives.first(where: { $0.string.range(of: #"^\d{1,3}$"#, options: .regularExpression) != nil }) : nil) ?? alternatives.first else { return nil }
             return OCRLine(text: candidate.string, boundingBox: observation.boundingBox, confidence: candidate.confidence)
         }
     }

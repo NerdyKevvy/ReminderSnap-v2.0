@@ -10,22 +10,28 @@ public final class AssignmentParser {
 
         var candidates: [AssignmentCandidate] = []
         for document in documents {
+            if let structured = LayoutInterpreter.parse(document, context: context), !structured.isEmpty {
+                candidates += structured
+                continue
+            }
             let platform = detectPlatform(document)
             let course = courseCode(in: document) ?? (context.course.trimmed.isEmpty ? nil : context.course.trimmed) ?? batchFallbackCourse ?? ""
             let spatial = parseSpatial(document, course: course, platform: platform, context: context)
-            if !spatial.isEmpty {
-                candidates += spatial
-                continue
-            }
+            candidates += spatial
+            // A partial spatial result must not suppress every other row.
+            // Remove only deadline observations already represented in it.
+            let remaining = OCRDocument(sourceName: document.sourceName, lines: document.lines.filter { line in
+                !spatial.contains { $0.sourceDeadlineText?.hasPrefix(line.text) == true && DeadlineParser.containsDate(line.text) }
+            }, readingMethod: document.readingMethod)
             switch platform {
             case .gradescope:
-                candidates += parseGradescope(document, course: course)
+                candidates += parseGradescope(remaining, course: course)
             case .webAssign:
-                candidates += parseWebAssign(document, course: course)
+                candidates += parseWebAssign(remaining, course: course)
             case .brightspace, .canvas, .moodle:
-                candidates += parseFlexibleLayout(document, course: course, platform: platform)
+                candidates += parseFlexibleLayout(remaining, course: course, platform: platform)
             case .unknown:
-                candidates += parseGeneric(document, course: course)
+                candidates += parseGeneric(remaining, course: course)
             }
         }
 
@@ -144,7 +150,8 @@ public final class AssignmentParser {
                 questionCount: score.0, dueDate: deadline?.date,
                 hasExplicitTime: deadline?.hasExplicitTime ?? dateText.contains(":"),
                 timeZoneIdentifier: deadline?.timeZoneIdentifier ?? context.timeZoneIdentifier,
-                sourcePlatform: platform, sourceImages: [document.sourceName], warnings: warnings
+                sourcePlatform: platform, sourceImages: [document.sourceName], warnings: warnings,
+                sectionCode: LayoutInterpreter.section(in: split.name), sourceDeadlineText: dateText
             ))
         }
         return results
@@ -154,7 +161,7 @@ public final class AssignmentParser {
         guard text.trimmed.count >= 3, !isNoiseTitle(text), !DeadlineParser.containsDate(text),
               CourseNormalizer.code(from: text) == nil else { return false }
         let lower = text.replacingOccurrences(of: #"^[\s•●○◦·✓✔☑]+"#, with: "", options: .regularExpression).trimmed.lowercased()
-        return !["released", "release date", "late due", "due on", "starts", "not submitted", "no submission"].contains(where: { lower.hasPrefix($0) }) &&
+        return !["released", "release date", "late due", "due on", "starts", "not submitted", "no submission", "submitted"].contains(where: { lower.hasPrefix($0) }) &&
             lower.range(of: #"^(?:due|deadline|closes?)\b"#, options: .regularExpression) == nil &&
             !lower.contains("http") && !lower.contains(".com/") && !lower.contains(".edu") &&
             !["gradescope", "cengage | webassign", "webassign", "name"].contains(lower)
@@ -387,7 +394,7 @@ public final class AssignmentParser {
             .filter { candidate in
                 guard candidate.text != deadlineLine.text,
                       candidate.text.count >= 3,
-                      !isNoiseTitle(candidate.text),
+                      plausibleTitle(candidate.text),
                       !isPotentialDeadlineLine(candidate.text) else { return false }
                 let verticalDelta = deadlineLine.topDownY - candidate.topDownY
                 guard verticalDelta >= -0.018, verticalDelta <= 0.12 else { return false }
@@ -415,7 +422,7 @@ public final class AssignmentParser {
             .lowercased()
         let exactNoise: Set<String> = [
             "assignment", "assignments", "no category", "completion status", "evaluation status",
-            "score", "status", "due", "due date", "deadline", "not complete", "complete", "no submission", "not submitted",
+            "score", "status", "due", "due date", "deadline", "not complete", "complete", "no submission", "not submitted", "submitted", "released", "release date",
             "view history", "attachments", "attachment", "content", "announcements", "discussions",
             "quizzes", "grades", "help", "dashboard", "calendar", "modules", "submission",
             "submissions", "available until", "current assignments", "past assignments", "all assignments"
@@ -528,7 +535,11 @@ public final class AssignmentParser {
         var insertionOrder: [String] = []
 
         for candidate in candidates {
-            let key = candidate.identityKey
+            // An unreadable/missing assignment number must not collapse all
+            // visible rows called "Homework" into a single supposed duplicate.
+            let ambiguous = candidate.assignmentName.trimmed.isEmpty ||
+                candidate.assignmentName.range(of: #"^(?:Homework|Lab|Worksheet)(?:\s+[A-Z])?$"#, options: [.regularExpression, .caseInsensitive]) != nil
+            let key = candidate.identityKey + (ambiguous ? "|" + (candidate.sourceDeadlineText ?? candidate.dueDate.map { String($0.timeIntervalSince1970) } ?? candidate.id.uuidString) : "")
             guard var existing = byKey[key] else {
                 byKey[key] = candidate
                 insertionOrder.append(key)

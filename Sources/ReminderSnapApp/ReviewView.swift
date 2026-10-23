@@ -11,7 +11,7 @@ struct ReviewView: View {
     @State private var showingText = false
     @State private var dropping = false
     var visibleIDs: [UUID] {
-        model.items.filter { item in
+        model.visibleImportItems.filter { item in
             (!onlyWarnings || !item.candidate.warnings.isEmpty || item.candidate.dueDate == nil || item.candidate.courseCode.isEmpty) &&
             (search.isEmpty || item.candidate.reminderTitle.localizedCaseInsensitiveContains(search))
         }.map(\.id)
@@ -119,7 +119,7 @@ struct ReviewView: View {
         HStack(spacing: 12) {
             Image(systemName: "checkmark.circle.fill").foregroundStyle(Studio.green)
             VStack(alignment: .leading, spacing: 4) {
-                Text(model.copy(model.isDemo ? "That’s the flow." : "Saved to your Apple apps.", model.isDemo ? "保存流程体验完成。" : "已保存到 Apple 应用。" )).font(.system(size: 13, weight: .semibold))
+                Text(model.copy(model.isDemo ? "That’s the flow." : "Saved to your assignment calendar.", model.isDemo ? "保存流程体验完成。" : "已保存到作业日历。" )).font(.system(size: 13, weight: .semibold))
                 Text(model.t(model.statusMessage)).font(.system(size: 11)).foregroundStyle(Studio.muted)
             }
             Spacer()
@@ -134,6 +134,8 @@ struct ReviewView: View {
                     TextField(model.copy("Find a task or course", "搜索任务或课程"), text: $search).textFieldStyle(.plain)
                 }.font(.system(size: 12)).padding(11).background(Studio.surface).clipShape(RoundedRectangle(cornerRadius: 10))
                 Menu {
+                    Toggle(model.copy("Show other class sections", "显示其他班级"), isOn: $model.showOtherSections)
+                    Toggle(model.copy("Show submitted assignments", "显示已提交作业"), isOn: $model.includeSubmitted)
                     Toggle(model.copy("Needs review only", "仅显示待核对"), isOn: $onlyWarnings)
                     Button(model.copy("Select all", "全选")) { model.setAllSelected(true) }
                     Button(model.copy("Select none", "全不选")) { model.setAllSelected(false) }
@@ -150,6 +152,7 @@ struct ReviewView: View {
                 Text("/").foregroundStyle(Studio.muted.opacity(0.4))
                 Button(model.copy("None", "全不选")) { model.setAllSelected(false) }.buttonStyle(.plain)
                 Spacer()
+                Button(model.copy("Fix details", "补全信息")) { model.showingMissingDetails = true }.buttonStyle(.plain)
                 if onlyWarnings { Text(model.copy("Needs review", "待核对")).foregroundStyle(Studio.amber) }
                 else { Text(model.copy("Click a task to refine it", "点击任务以编辑" )).foregroundStyle(Studio.muted) }
             }.font(.system(size: 10, weight: .medium))
@@ -177,20 +180,18 @@ struct ReviewView: View {
 
     private var destinationText: String {
         if model.isDemo { return model.copy("Sample mode · no real reminders or events", "示例模式 · 不创建真实提醒或日程") }
-        if model.destinationNeedsRepair { return model.copy("Choose your Apple destinations before saving", "保存前请选择 Apple 目标列表和日历") }
-        return model.copy("Save to ", "保存到 ") + model.t(model.outputMode.rawValue)
+        return model.copy("Save to your assignment calendar · external calendar optional", "保存到作业日历 · 外部日历可选")
     }
     private var saveButton: some View {
         Button {
             if model.isDemo { model.simulateSave() }
-            else if model.destinationNeedsRepair { model.page = .userGuide }
             else { model.addSelected() }
         } label: {
             HStack(spacing: 10) {
-                Text(model.copy(model.isDemo ? "Test save" : (model.destinationNeedsRepair ? "Connect Apple apps" : "Save selected"), model.isDemo ? "体验保存" : (model.destinationNeedsRepair ? "连接 Apple 应用" : "保存所选任务")))
+                Text(model.copy(model.isDemo ? "Test save" : "Save selected", model.isDemo ? "体验保存" : "保存所选任务"))
                 Image(systemName: "arrow.right")
             }.frame(maxWidth: compact ? .infinity : nil)
-        }.buttonStyle(SilverButtonStyle()).disabled(model.selectedCount == 0 || model.isProcessing)
+        }.buttonStyle(SilverButtonStyle()).disabled(model.isProcessing)
             .opacity(model.selectedCount == 0 ? 0.45 : 1)
             .accessibilityIdentifier("import.save")
     }
@@ -211,7 +212,7 @@ struct TaskCard: View {
             Button(action: edit) {
                 VStack(alignment: .leading, spacing: 11) {
                     HStack(spacing: 8) {
-                        Text(item.candidate.courseTag).font(.system(size: 10, weight: .medium, design: .monospaced)).tracking(0.5).foregroundStyle(Studio.muted)
+                        Text(item.candidate.courseTag.isEmpty ? model.copy("Uncategorized", "未分类") : item.candidate.courseTag).font(.system(size: 10, weight: .medium, design: .monospaced)).tracking(0.5).foregroundStyle(Studio.muted)
                         Spacer(minLength: 0)
                         if item.status != .ready {
                             Pill(text: model.t(item.status.label), color: item.status == .needsReview ? Studio.amber : Studio.muted)
@@ -221,7 +222,7 @@ struct TaskCard: View {
                         .foregroundStyle(Studio.silver).multilineTextAlignment(.leading).lineLimit(2)
                     HStack(spacing: 11) {
                         Label(taskDate(item.candidate, language: model.language, includeTime: true), systemImage: "calendar")
-                        if item.deadlineNotificationEnabled { Image(systemName: "bell") }
+                        if item.appAlertsEnabled { Image(systemName: "bell") }
                         if item.companionEventEnabled && model.outputMode.usesCalendar { Image(systemName: "rectangle.split.3x1") }
                         Spacer(minLength: 0)
                         Image(systemName: "arrow.up.right").font(.system(size: 10))

@@ -14,12 +14,13 @@ struct StudioShell: View {
                 VStack(spacing: 0) {
                     topbar(compact: compact)
                     Rectangle().fill(Studio.line).frame(height: 1).allowsHitTesting(false)
-                    if model.permissionSetup.restartRecommended {
+                    if model.permissionSetup.restartRecommended && model.workflow == .apple && model.page == .settings {
                         PermissionRestartNotice(compact: true)
                             .padding(.horizontal, compact ? 18 : 32).padding(.vertical, 12)
                     }
                     Group {
                         switch model.page {
+                        case .calendar: TaskCalendarView(compact: compact)
                         case .addReminder: ReviewView(compact: compact)
                         case .settings: PreferencesView(compact: compact)
                         case .userGuide: ConnectionsView(compact: compact)
@@ -39,6 +40,21 @@ struct StudioShell: View {
             }
         }
         .sheet(isPresented: $model.showingSetup) { WelcomeView().environmentObject(model) }
+        .sheet(isPresented: $model.showingMissingDetails) { MissingDetailsView().environmentObject(model) }
+        #if os(iOS)
+        .fullScreenCover(isPresented: $model.showingCamera) { CameraImportView().environmentObject(model) }
+        .sheet(item: $model.selectedAppleEvent) { reference in LinkedAppleEventPreview(reference: reference) }
+        #endif
+        .alert(model.copy("Your linked task", "你的关联任务"), isPresented: Binding(get: { !model.workflowNotice.isEmpty }, set: { if !$0 { model.workflowNotice = "" } })) {
+            Button(model.copy("OK", "好")) { model.workflowNotice = "" }
+        } message: { Text(model.workflowNotice) }
+        .onOpenURL { model.googleCalendar.handle($0) }
+        .alert(model.copy("Create a test task in your selected calendar?", "在所选日历中创建测试任务？"), isPresented: $model.showingExternalSampleConfirmation) {
+            Button(model.copy("Cancel", "取消"), role: .cancel) { }
+            Button(model.copy("Create & show me", "创建并查看")) { model.createExternalSample() }
+        } message: {
+            Text(model.copy("One clearly labelled test assignment will be saved. You can delete it and its linked items from Your Task Calendar. No notification will be scheduled for it.", "会保存一项明确标注的测试作业，可在作业日历中删除它及关联条目，不会为它安排通知。"))
+        }
         .alert(model.copy("Clear this import?", "清空本次导入？"), isPresented: $model.showingClearConfirmation) {
             Button(model.copy("Cancel", "取消"), role: .cancel) { }
             Button(model.copy("Clear All", "清空全部"), role: .destructive) { model.clear() }
@@ -92,11 +108,11 @@ struct StudioShell: View {
             VStack(alignment: .leading, spacing: 10) {
                 Label(model.copy("On-device by design", "始终本地处理"), systemImage: "lock.shield")
                     .font(.system(size: 11, weight: .medium))
-                Text(model.copy("Your files stay with you.\nYour tasks live in Apple’s apps.", "文件留在设备上。\n任务保存在 Apple 应用中。"))
+                Text(model.copy("No school login.\nYour assignments, together.\nPrivate iCloud sync.", "无需学校账户。\n作业集中管理。\n通过私人 iCloud 同步。"))
                     .font(.system(size: 11)).foregroundStyle(Studio.muted).lineSpacing(4)
             }.padding(15).frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color.white.opacity(0.025)).clipShape(RoundedRectangle(cornerRadius: 12))
-            Text("REMINDERSNAP · 2.0").font(.system(size: 9, design: .monospaced)).tracking(0.5)
+            Text("REMINDERSNAP · 2.1").font(.system(size: 9, design: .monospaced)).tracking(0.5)
                 .foregroundStyle(Studio.muted).padding(.vertical, 22).padding(.horizontal, 6)
         }.padding(.horizontal, 17).frame(width: 218).background(Studio.sidebar)
             .overlay(alignment: .trailing) { Rectangle().fill(Studio.line).frame(width: 1).allowsHitTesting(false) }
@@ -107,9 +123,13 @@ struct StudioShell: View {
             if compact { BrandMark(size: 27) }
             Text(model.page.title(model)).font(.system(size: compact ? 16 : 13, weight: .semibold))
             Spacer(minLength: 4)
+            if model.page == .calendar {
+                Button { model.page = .addReminder } label: { Label(model.copy("Import Tasks", "导入任务"), systemImage: "plus") }
+                    .buttonStyle(QuietButtonStyle()).accessibilityIdentifier("calendar.import")
+            }
             if model.page == .addReminder {
                 Button { model.showingClearConfirmation = true } label: {
-                    Label(model.copy("Clear All", "清空全部"), systemImage: "trash")
+                    Label(model.copy("Clear Import", "清空导入"), systemImage: "trash")
                 }.buttonStyle(QuietButtonStyle()).disabled(!model.canClearImport)
                     .accessibilityIdentifier("import.clearAll")
                     .help(model.copy("Clear only this import, never saved Apple data", "仅清空本次导入，不删除已保存的数据"))

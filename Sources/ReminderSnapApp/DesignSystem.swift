@@ -2,14 +2,15 @@ import SwiftUI
 import ReminderSnapCore
 
 enum StudioPage: String, CaseIterable, Identifiable {
-    case addReminder, settings, userGuide
+    case calendar, addReminder, settings, userGuide
     var id: String { rawValue }
     var icon: String {
-        switch self { case .addReminder: return "plus.square"; case .settings: return "slider.horizontal.3"; case .userGuide: return "book.closed" }
+        switch self { case .calendar: return "calendar"; case .addReminder: return "plus.square"; case .settings: return "slider.horizontal.3"; case .userGuide: return "book.closed" }
     }
     @MainActor func title(_ model: AppModel) -> String {
         switch self {
-        case .addReminder: return model.copy("Add Reminder", "添加提醒")
+        case .calendar: return model.copy("Your Task Calendar", "作业日历")
+        case .addReminder: return model.copy("Import Tasks", "导入任务")
         case .settings: return model.copy("Settings", "设置")
         case .userGuide: return model.copy("User Guide", "使用指南")
         }

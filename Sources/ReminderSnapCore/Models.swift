@@ -79,6 +79,9 @@ public struct AssignmentCandidate: Identifiable, Codable, Sendable {
     public var sourceImages: [String]
     public var warnings: [String]
     public var titleOverride: String?
+    public var sectionCode: String?
+    public var submissionStatus: String?
+    public var sourceDeadlineText: String?
 
     public init(
         id: UUID = UUID(),
@@ -92,7 +95,10 @@ public struct AssignmentCandidate: Identifiable, Codable, Sendable {
         sourcePlatform: SourcePlatform,
         sourceImages: [String],
         warnings: [String] = [],
-        titleOverride: String? = nil
+        titleOverride: String? = nil,
+        sectionCode: String? = nil,
+        submissionStatus: String? = nil,
+        sourceDeadlineText: String? = nil
     ) {
         self.id = id
         self.courseCode = courseCode
@@ -106,6 +112,9 @@ public struct AssignmentCandidate: Identifiable, Codable, Sendable {
         self.sourceImages = sourceImages
         self.warnings = warnings
         self.titleOverride = titleOverride
+        self.sectionCode = sectionCode
+        self.submissionStatus = submissionStatus
+        self.sourceDeadlineText = sourceDeadlineText
     }
 
     public var courseTag: String {
@@ -164,11 +173,19 @@ public struct CompanionEventRequest: Sendable {
 
 public enum CourseNormalizer {
     public static func code(from text: String) -> String? {
+        let text = text.replacingOccurrences(of: "_", with: " ")
         let pattern = #"\b([A-Z]{2,4})\s*-\s*UY\s*[: -]?\s*(\d{4})\b"#
-        guard let match = text.firstRegexMatch(pattern: pattern, options: [.caseInsensitive]),
-              let department = match.capture(1),
-              let number = match.capture(2) else { return nil }
-        return "\(department.uppercased())-UY \(number)"
+        if let match = text.firstRegexMatch(pattern: pattern, options: [.caseInsensitive]),
+           let department = match.capture(1), let number = match.capture(2) {
+            return "\(department.uppercased())-UY \(number)"
+        }
+        // Keep this case-sensitive: "Homework 6" and "Fall 2026" are not courses.
+        let generic = #"\b([A-Z]{1,8}(?:&[A-Z]{1,4})?(?:\s+[A-Z]{2,8}){0,2})\s+(\d{1,4}[A-Z]{0,2})\b"#
+        guard let match = text.firstRegexMatch(pattern: generic),
+              let department = match.capture(1), let number = match.capture(2),
+              !["FALL", "SPRING", "SUMMER", "WINTER", "HOMEWORK", "LAB", "CHAPTER", "DUE", "EXPERIMENT"].contains(department),
+              !department.hasSuffix(" LEC") else { return nil }
+        return "\(department) \(number)"
     }
 
     public static func tag(from courseCode: String) -> String {
@@ -183,7 +200,7 @@ public enum CourseNormalizer {
         }
 
         let compact = courseCode.uppercased().filter { $0.isLetter || $0.isNumber }
-        return compact.isEmpty ? "#COURSE" : "#\(compact)"
+        return compact.isEmpty ? "" : "#\(compact)"
     }
 }
 

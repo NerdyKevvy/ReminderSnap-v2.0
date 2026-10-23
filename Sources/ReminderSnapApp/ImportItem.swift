@@ -26,6 +26,8 @@ struct ImportItem: Identifiable {
     var companionEventEnabled: Bool
     var companionEventStartAlertEnabled: Bool
     var companionEventAdditionalLeadTimes: [TimeInterval]
+    var appAlertsEnabled = true
+    var appAlertLeadTimes: [TimeInterval] = [86400, 7200]
 
     init(
         candidate: AssignmentCandidate,
@@ -36,7 +38,7 @@ struct ImportItem: Identifiable {
     ) {
         self.id = candidate.id
         self.candidate = candidate
-        self.isSelected = candidate.dueDate != nil && !candidate.courseCode.isEmpty
+        self.isSelected = candidate.dueDate != nil
         self.status = candidate.warnings.isEmpty ? .ready : .needsReview
         self.deadlineNotificationEnabled = deadlineNotificationEnabled
         self.companionEventEnabled = companionEventEnabled

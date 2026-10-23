@@ -8,106 +8,183 @@ struct PreferencesView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                Eyebrow(text: model.copy("Small details, your way", "让细节符合你的习惯"))
-                Text(model.copy("Set your rhythm.", "设定你的节奏。"))
+                Eyebrow(text: model.copy("Your center. Your workflow.", "你的作业中心，你的使用方式。"))
+                Text(model.copy("Make it work for you.", "让它符合你的习惯。"))
                     .font(.system(size: compact ? 29 : 36, weight: .medium)).tracking(-1)
                 Panel {
                     Picker(model.copy("Language", "语言"), selection: $model.language) {
-                        Text("English").tag(AppLanguage.english)
-                        Text("简体中文").tag(AppLanguage.simplifiedChinese)
-                    }.pickerStyle(.menu).accessibilityIdentifier("settings.language")
+                        Text("English").tag(AppLanguage.english); Text("简体中文").tag(AppLanguage.simplifiedChinese)
+                    }.pickerStyle(.menu)
                 }
-                Panel {
-                    VStack(alignment: .leading, spacing: 19) {
-                        Text(model.copy("Defaults for the next import", "下次导入的默认设置")).font(.headline)
-                        Toggle(model.copy("Notify at the reminder’s deadline", "提醒事项截止时通知"), isOn: Binding(get: { model.defaultDeadlineNotificationEnabled }, set: model.setDefaultDeadlineNotificationEnabled))
-                        Toggle(model.copy("Include Calendar companion blocks", "添加日历伴随时间块"), isOn: Binding(get: { model.defaultCompanionEventsEnabled }, set: model.setDefaultCompanionEventsEnabled))
-                            .disabled(model.outputMode == .calendar)
-                        Toggle(model.copy("Notify when the block starts", "日历时间块开始时通知"), isOn: Binding(get: { model.defaultCompanionEventStartAlertEnabled }, set: model.setDefaultCompanionEventStartAlertEnabled))
-                        Divider().overlay(Studio.line)
-                        LeadTimeEditor(values: Binding(get: { model.defaultCompanionEventAdditionalLeadTimes }, set: model.setDefaultCompanionEventAdditionalLeadTimes))
-                        Button(model.copy("Apply alert defaults to this import", "将通知默认设置应用到本次导入")) { model.applyNotificationDefaultsToAll() }.buttonStyle(QuietButtonStyle()).disabled(model.items.isEmpty)
-                    }.font(.system(size: 13))
-                }.disabled(model.isProcessing)
-                Panel {
-                    VStack(alignment: .leading, spacing: 16) {
-                        Label(model.copy("Private. Local. Yours.", "私密、本地、属于你。"), systemImage: "lock.shield").font(.headline)
-                        Text(model.copy("Apple Vision reads on this device. No account, server, advertising, or AI subscription. Your chosen Apple accounts handle any reminder and calendar syncing.", "Apple Vision 在设备本地识别。无需账户、服务器或 AI 订阅，也没有广告。提醒事项和日历同步由你选择的 Apple 账户处理。"))
-                            .font(.system(size: 12)).foregroundStyle(Studio.muted).lineSpacing(4)
-                        Button(model.copy("Privacy Policy", "隐私政策")) { showingPrivacy = true }.buttonStyle(QuietButtonStyle())
-                        Link(model.copy("Support on GitHub", "在 GitHub 获取支持"), destination: URL(string: "https://github.com/NerdyKevvy/ReminderSnap-v2.0/blob/main/AppStore/SUPPORT.md")!)
-                            .font(.system(size: 12))
-                        Button(model.copy("Connections & setup help", "连接与设置帮助")) { model.page = .userGuide }.buttonStyle(QuietButtonStyle())
-                        Text("ReminderSnap 2.0").font(.system(size: 11)).foregroundStyle(Studio.muted)
+                WorkflowChoices()
+                if model.workflow == .apple { AppleConnectionsSection() }
+                if model.workflow == .google { GoogleConnectionPanel() }
+                if model.savedAssignments.contains(where: { $0.isTestItem == true }) {
+                    Button(model.copy("Remove onboarding test assignments & links", "移除引导测试作业及关联条目"), role: .destructive) { model.removeTestAssignments() }
+                        .font(.caption)
+                }
+                notificationPanel
+                syncPanel
+                if !model.planner.courses.isEmpty {
+                    Panel {
+                        VStack(alignment: .leading, spacing: 15) {
+                            Label(model.copy("Courses & sections", "课程与班级"), systemImage: "graduationcap").font(.headline)
+                            ForEach(model.planner.courses) { profile in CourseProfileEditor(profile: profile) }
+                        }
                     }
                 }
-            }.padding(compact ? 22 : 34).frame(maxWidth: 800, alignment: .leading).frame(maxWidth: .infinity)
+                Panel {
+                    VStack(alignment: .leading, spacing: 14) {
+                        Label(model.copy("Linked calendar updates", "关联日历更新"), systemImage: "link").font(.headline)
+                        Text(model.copy("Edits made in ReminderSnap update linked items. Apple links update on their original exporting device; Google needs the linked account connected here. Changes made externally are not imported automatically.", "ReminderSnap 中的修改会更新关联条目。Apple 关联由最初导出的设备更新；Google 需要在本机连接对应账户。外部修改不会自动导入。"))
+                            .font(.caption).foregroundStyle(Studio.muted)
+                        Button(model.copy("Retry linked updates", "重试关联更新")) { Task { await model.flushPendingExports() } }.buttonStyle(QuietButtonStyle())
+                        Button(model.copy("Refresh existing links & alert settings", "刷新已有条目与通知设置")) { model.refreshLinkedAssignments() }
+                            .buttonStyle(QuietButtonStyle()).disabled(model.isExporting)
+                        Text(model.copy("\(model.planner.tasks.filter(\.needsExport).count) update(s) pending", "\(model.planner.tasks.filter(\.needsExport).count) 项更新待处理"))
+                            .font(.caption).foregroundStyle(Studio.muted)
+                    }
+                }
+                HStack {
+                    Button(model.copy("Privacy Policy", "隐私政策")) { showingPrivacy = true }.buttonStyle(.plain)
+                    Spacer(); Text("ReminderSnap 2.1").font(.caption).foregroundStyle(Studio.muted)
+                }
+                Link(model.copy("Support on GitHub", "在 GitHub 获取支持"), destination: URL(string: "https://github.com/NerdyKevvy/ReminderSnap-v2.0/blob/main/AppStore/SUPPORT.md")!)
+            }.padding(compact ? 22 : 34).frame(maxWidth: 850).frame(maxWidth: .infinity)
         }.sheet(isPresented: $showingPrivacy) { PrivacyView().environmentObject(model) }
+    }
+    private var notificationPanel: some View {
+        Panel {
+            VStack(alignment: .leading, spacing: 17) {
+                Label(model.copy("ReminderSnap notifications", "ReminderSnap 通知"), systemImage: "bell.badge").font(.headline)
+                Toggle(model.copy("Alerts on this device", "在此设备上通知"), isOn: Binding(get: { model.plannerNotificationsEnabled }, set: { enabled in
+                    if enabled { model.enableAppNotifications() } else { model.plannerNotificationsEnabled = false }
+                }))
+                Text(model.language == .english ? model.notifications.message : (model.notifications.authorized ? "已允许通知，专注模式和系统设置仍会影响送达。" : "通知尚未开启，可在系统设置中允许。"))
+                    .font(.caption).foregroundStyle(Studio.muted)
+                LeadTimeEditor(values: $model.appAlertLeadTimes, purpose: model.copy("Defaults · before the real deadline", "默认通知 · 相对于真实截止时间"))
+                Stepper(value: $model.dateOnlyAlertHour, in: 0...23) {
+                    Text(model.copy("Date-only assignments: \(model.dateOnlyAlertHour):00", "仅日期作业：\(model.dateOnlyAlertHour):00"))
+                }.font(.caption)
+                Text(model.copy("Date-only tasks alert that morning and the previous morning. Timed tasks use your custom lead times. These defaults apply to new imports.", "仅日期任务会在当天和前一天早晨通知；指定时间的任务使用自定义提前量。默认设置应用于新导入的任务。"))
+                    .font(.caption).foregroundStyle(Studio.muted)
+                ViewThatFits {
+                    HStack { notificationButtons }
+                    VStack(alignment: .leading) { notificationButtons }
+                }
+                Text(model.copy("When ReminderSnap alerts are enabled, new linked exports suppress app-managed external alerts to avoid duplicates. After changing this preference, use ‘Refresh existing links & alert settings’ below. Alerts you added yourself are kept.", "开启 ReminderSnap 通知时，新关联导出不会重复设置本应用管理的外部通知。更改偏好后，请使用下方的“刷新已有条目与通知设置”。你自行添加的通知会保留。"))
+                    .font(.caption).foregroundStyle(Studio.muted)
+            }
+        }
+    }
+    @ViewBuilder private var notificationButtons: some View {
+        Button(model.copy("Send a test in 5 seconds", "5 秒后发送测试通知")) {
+            Task { await model.notifications.test(chinese: model.language == .simplifiedChinese) }
+        }.buttonStyle(QuietButtonStyle())
+        Button(model.copy("System settings", "系统设置")) { model.openSettings() }.buttonStyle(.plain)
+    }
+    private var syncPanel: some View {
+        Panel {
+            VStack(alignment: .leading, spacing: 12) {
+                Label(model.copy("Private iCloud sync", "私人 iCloud 同步"), systemImage: "icloud").font(.headline)
+                Text(model.language == .english ? model.planner.syncState : (model.planner.iCloudAvailable ? "通过你的 iCloud 账户同步已确认作业。" : "当前仅保存在本机，请在系统设置中开启 iCloud。"))
+                    .font(.caption).foregroundStyle(Studio.muted)
+                if let error = model.planner.error { Text(error).font(.caption).foregroundStyle(Studio.amber) }
+                Text(model.copy("Use the same Apple account on Mac and iPhone. Offline edits are kept locally; background sync may be delayed. Screenshots and raw OCR are not synced.", "Mac 与 iPhone 需使用同一 Apple 账户。离线修改保存在本机，后台同步可能延迟。截图和原始识别文本不会同步。"))
+                    .font(.caption).foregroundStyle(Studio.muted)
+                Button(model.copy("Check iCloud again", "重新检查 iCloud")) { Task { await model.planner.open(recheckAccount: true) } }.buttonStyle(QuietButtonStyle())
+                #if DEBUG
+                Button("Initialize development schema") { model.planner.initializeDevelopmentSchema() }.buttonStyle(QuietButtonStyle())
+                #endif
+                if model.planner.localAssignmentsAvailable {
+                    Text(model.copy("Assignments created before iCloud was available are still in your separate local calendar. Copy them to this Apple account only if they are yours.", "启用 iCloud 前创建的作业仍保留在独立的本机日历。仅在确认属于你时复制到当前 Apple 账户。"))
+                        .font(.caption).foregroundStyle(Studio.amber)
+                    Button(model.copy("Copy my local assignments to iCloud", "将我的本机作业复制到 iCloud")) { Task { await model.planner.mergeLocalAssignments() } }.buttonStyle(QuietButtonStyle())
+                }
+            }
+        }
     }
 }
 
-struct WelcomeView: View {
+struct WorkflowChoices: View {
     @EnvironmentObject private var model: AppModel
-    @State private var step = 0
     var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 14) {
-                BrandMark(size: 38)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("ReminderSnap").font(.headline)
-                    Text(model.copy("GET STARTED · \(step + 1) OF 3", "开始使用 · 第 \(step + 1) / 3 步"))
-                        .font(.system(size: 10, weight: .medium, design: .monospaced)).foregroundStyle(Studio.muted)
+        VStack(alignment: .leading, spacing: 12) {
+            Text(model.copy("Where would you like to work?", "你想在哪里管理作业？")).font(.headline)
+            ForEach(PlannerWorkflow.allCases) { workflow in
+                Button { model.workflow = workflow } label: {
+                    HStack(spacing: 13) {
+                        Image(systemName: workflow == .inApp ? "calendar.badge.clock" : workflow == .apple ? "calendar" : "globe").font(.title2).frame(width: 30)
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text(workflow == .inApp ? model.copy("Stay with ReminderSnap", "留在 ReminderSnap") : workflow == .apple ? model.copy("Connect Apple apps", "连接 Apple 应用") : "Google Calendar").font(.system(size: 14, weight: .medium))
+                            Text(workflow == .inApp ? model.copy("Your assignments and alerts. No extra login.", "作业日历与通知，无需额外登录。") : workflow == .apple ? model.copy("Optional reminders and planning blocks.", "可选提醒事项与计划时间块。") : model.copy("Sign in only when you choose to connect.", "仅在你选择连接时登录。"))
+                                .font(.caption).foregroundStyle(Studio.muted)
+                        }
+                        Spacer(minLength: 0)
+                        Image(systemName: model.workflow == workflow ? "checkmark.circle.fill" : "circle").foregroundStyle(model.workflow == workflow ? Studio.silver : Studio.muted)
+                    }.padding(17).frame(maxWidth: .infinity, alignment: .leading)
+                        .background(model.workflow == workflow ? Studio.elevated : Studio.surface).clipShape(RoundedRectangle(cornerRadius: 13)).contentShape(Rectangle())
+                }.buttonStyle(.plain)
+            }
+            Text(model.copy("Every confirmed assignment also stays in your ReminderSnap calendar. Changing this choice affects new imports, not old exports.", "所有确认的作业都会保存在 ReminderSnap 日历中。更改选择影响新导入，不会改变旧的导出。"))
+                .font(.caption).foregroundStyle(Studio.muted)
+        }
+    }
+}
+
+struct GoogleConnectionPanel: View {
+    @EnvironmentObject private var model: AppModel
+    var body: some View {
+        Panel {
+            VStack(alignment: .leading, spacing: 14) {
+                Label("Google Calendar", systemImage: "globe").font(.headline)
+                Text(model.googleCalendar.connected ? model.googleCalendar.email : model.copy("Connect only if you want your assignments in Google Calendar.", "仅当你希望在 Google 日历中显示作业时连接。"))
+                    .font(.caption).foregroundStyle(Studio.muted)
+                Text(model.copy("We request access to calendars created by this app, not your Gmail, school account, or unrelated calendar events. A dedicated ReminderSnap Assignments calendar will be created when you export your first task.", "仅请求访问本应用创建的日历，不读取 Gmail、学校账户或无关日程。首次导出任务时会创建独立的 ReminderSnap Assignments 日历。"))
+                    .font(.caption).foregroundStyle(Studio.muted)
+                if model.googleCalendar.connected {
+                    Button(model.copy("Disconnect on this device", "在此设备断开连接")) { model.googleCalendar.disconnect() }.buttonStyle(QuietButtonStyle())
+                } else {
+                    Button(model.copy("Connect Google Calendar", "连接 Google 日历")) { model.connectGoogle() }.buttonStyle(SilverButtonStyle(small: true)).disabled(model.googleCalendar.busy)
                 }
-                Spacer()
-                Picker(model.copy("Language", "语言"), selection: $model.language) {
-                    Text("English").tag(AppLanguage.english)
-                    Text("简体中文").tag(AppLanguage.simplifiedChinese)
-                }.labelsHidden().fixedSize()
-            }.padding(24)
-            Divider().overlay(Studio.line)
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    if step == 0 {
-                        Text(model.copy("Less typing.\nMore doing.", "少一点输入，\n多一点专注。"))
-                            .font(.system(size: 36, weight: .medium)).tracking(-1)
-                        Text(model.copy("Turn screenshots into real Apple reminders and optional Calendar blocks. Everything is read locally; nothing is saved until you choose to save.", "将截图变为真实的 Apple 提醒事项和可选的日历时间块。识别完全在本地进行，只有点击保存后才会创建任务。"))
-                            .font(.system(size: 14)).foregroundStyle(Studio.muted).lineSpacing(4)
-                        GuideSteps()
-                    } else if step == 1 {
-                        Text(model.copy("Choose where tasks belong.", "选择任务的保存位置。"))
-                            .font(.system(size: 26, weight: .medium))
-                        Text(model.copy("Connect only the apps you want to use. Choose an existing list, or expand Create a new list to name your own. You can also do this later in User Guide.", "只连接你需要使用的应用。选择现有列表，或展开「创建新列表」自定义名称。也可以稍后在「使用指南」中完成。"))
-                            .font(.system(size: 13)).foregroundStyle(Studio.muted)
-                        AppleConnectionsSection()
-                    } else {
-                        Text(model.copy("One last setup check.", "最后检查一下设置。"))
-                            .font(.system(size: 26, weight: .medium))
-                        PermissionRestartNotice()
-                        Label(model.destinationNeedsRepair ? model.copy("Destinations can be connected later in User Guide.", "可以稍后在使用指南中连接保存位置。") : model.copy("Your selected destinations are ready.", "所选保存位置已就绪。"), systemImage: model.destinationNeedsRepair ? "info.circle" : "checkmark.circle")
-                            .font(.system(size: 13)).foregroundStyle(model.destinationNeedsRepair ? Studio.amber : Studio.green)
-                        GuideChecklist()
-                        Text(model.copy("Want to explore first? The sample never writes to Reminders or Calendar.", "想先体验？示例模式永远不会向提醒事项或日历写入数据。"))
-                            .font(.system(size: 12)).foregroundStyle(Studio.muted)
-                        Button(model.copy("Try the safe sample", "体验安全示例")) { model.finishSetup(); model.showSample() }
-                            .buttonStyle(QuietButtonStyle()).accessibilityIdentifier("onboarding.sample")
-                    }
-                }.padding(24)
-            }.id(step)
-            HStack(spacing: 12) {
-                if step > 0 {
-                    Button(model.copy("Back", "返回")) { step -= 1 }.buttonStyle(QuietButtonStyle())
-                }
-                Spacer(minLength: 0)
-                Button(model.copy(step == 2 ? "Finish Setup" : (step == 1 && model.destinationNeedsRepair ? "Set Up Later" : "Continue"), step == 2 ? "完成设置" : (step == 1 && model.destinationNeedsRepair ? "稍后设置" : "继续"))) {
-                    if step == 2 { model.finishSetup() } else { step += 1 }
-                }.buttonStyle(SilverButtonStyle()).accessibilityIdentifier("onboarding.continue")
-            }.padding(20).background(Studio.sidebar).disabled(model.isSettingUp)
-        }.background(Studio.background).foregroundStyle(Studio.silver).tint(Studio.silver).preferredColorScheme(.dark)
-        .interactiveDismissDisabled()
-        .accessibilityIdentifier("onboarding.guide")
-        #if os(macOS)
-        .frame(width: 620, height: 720)
-        #endif
+                if model.googleCalendar.busy { ProgressView() }
+                if !model.googleCalendar.message.isEmpty { Text(model.googleCalendar.message).font(.caption).foregroundStyle(Studio.muted) }
+                Text(model.copy("Google authorization is device-specific. Private iCloud sync for the in-app planner is independent of Google.", "Google 授权仅用于当前设备，应用内作业的私人 iCloud 同步与 Google 独立。"))
+                    .font(.caption).foregroundStyle(Studio.muted)
+            }
+        }
+    }
+}
+
+struct CourseProfileEditor: View {
+    @EnvironmentObject private var model: AppModel
+    let profile: CourseProfile
+    @State private var editing = false
+    var body: some View {
+        DisclosureGroup(isExpanded: $editing) { CourseProfileFields(profile: profile) } label: {
+            HStack {
+                Circle().fill(CourseColors.color(profile.name, model: model)).frame(width: 8, height: 8)
+                Text(profile.name).font(.system(size: 13))
+                if !profile.section.isEmpty { Text(profile.section).font(.caption).foregroundStyle(Studio.muted) }
+            }
+        }
+    }
+}
+
+struct CourseProfileFields: View {
+    @EnvironmentObject private var model: AppModel
+    @State var profile: CourseProfile
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            TextField(model.copy("Section · leave blank for all", "班级 · 留空显示全部"), text: $profile.section).studioField()
+            TextField(model.copy("Course year", "课程年份"), text: Binding(get: { profile.year.map(String.init) ?? "" }, set: { profile.year = Int($0) })).studioField()
+            TextField(model.copy("Timezone", "时区"), text: $profile.timeZoneIdentifier).studioField()
+            Picker(model.copy("Colour · see calendar legend", "颜色 · 对应日历图例"), selection: $profile.colorIndex) {
+                ForEach(0..<CourseColors.values.count, id: \.self) { index in Text("\(index + 1)").tag(index) }
+            }
+            Button(model.copy("Save course preferences", "保存课程偏好")) { model.saveProfile(profile) }.buttonStyle(QuietButtonStyle())
+                .disabled(TimeZone(identifier: profile.timeZoneIdentifier) == nil || profile.year.map { !(1900...2199).contains($0) } == true)
+        }.padding(.top, 12)
     }
 }
 
@@ -115,35 +192,29 @@ struct PrivacyView: View {
     @EnvironmentObject private var model: AppModel
     @Environment(\.dismiss) private var dismiss
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(alignment: .leading, spacing: 20) {
             HStack {
-                Text(model.copy("Privacy Policy", "隐私政策")).font(.title2.weight(.medium))
-                Spacer()
-                Button(model.copy("Done", "完成")) { dismiss() }.buttonStyle(QuietButtonStyle())
-            }.padding(24)
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    Text(model.copy("Effective October 19, 2026", "生效日期：2026 年 10 月 19 日")).font(.caption).foregroundStyle(Studio.muted)
-                    section("On-device recognition", "本地识别", "ReminderSnap uses Apple Vision to read images and PDFs on your device. It does not upload your files or assignment text to the developer or an AI service.", "ReminderSnap 使用 Apple Vision 在设备上读取图片和 PDF，不会将文件或作业文本上传给开发者或 AI 服务。")
-                    section("Apple app access", "Apple 应用访问", "With your permission, the app reads your reminder lists, calendars and existing entries to choose destinations and prevent duplicates. Only tasks you select and save are written. Creating a list or calendar is a separate, explicit action. Apple and your selected account provider handle any synchronization.", "经过你的授权，应用读取提醒事项列表、日历及已有条目，以选择保存位置并避免重复。只有你选择并保存的任务才会写入。创建列表或日历需单独操作。同步由 Apple 及你选择的账户服务商处理。")
-                    section("Storage and controls", "存储与控制", "Recognition text and review tasks are held in memory. Raw recognition documents are cleared after a successful save; review tasks remain until cleared, replaced by another import, or quitting. Temporary Photos copies are removed after reading or cancellation. Preferences, saved-entry identifiers and alert-management information remain on-device. Clear All never deletes source files or saved Apple entries. Revoke permissions in system settings; manage saved entries in Reminders or Calendar. Device backups follow your Apple settings.", "识别文本和待核对任务保留在内存中。成功保存后清除原始识别文档，核对列表中的任务会保留至清空、替换导入或退出。照片的临时副本在读取或取消后移除。偏好设置、已保存条目标识符及通知管理信息保存在本地。「清空全部」不会删除原始文件或已保存的 Apple 条目。你可以在系统设置中撤销权限，并在提醒事项或日历中管理已保存的内容。设备备份由你的 Apple 设置控制。")
-                    section("No tracking", "不追踪", "The app includes no advertising, analytics SDK, developer account system, or tracking. If you contact support on GitHub, information you choose to send is handled by that service and used to respond. Do not post private screenshots or personal assignments in public issues.", "应用不含广告、分析 SDK、开发者账户系统或追踪。如通过 GitHub 联系支持，你主动提供的信息会由该服务处理并用于答复。请勿在公开问题中发布私人截图或个人作业内容。")
-                    Link(model.copy("Contact support on GitHub", "通过 GitHub 联系支持"), destination: URL(string: "https://github.com/NerdyKevvy/ReminderSnap-v2.0/blob/main/AppStore/SUPPORT.md")!)
-                    if let text = Bundle.main.object(forInfoDictionaryKey: "ReminderSnapPrivacyPolicyURL") as? String,
-                       let url = URL(string: text), url.scheme == "https" {
-                        Link(model.copy("Read the published policy", "阅读已发布的隐私政策"), destination: url)
-                    }
-                }.padding(24).frame(maxWidth: .infinity, alignment: .leading)
+                Text(model.copy("Your privacy, yours.", "你的隐私，由你掌握。" )).font(.title2)
+                Spacer(); Button(model.copy("Done", "完成")) { dismiss() }
             }
-        }.background(Studio.background).foregroundStyle(Studio.silver).preferredColorScheme(.dark)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    item("viewfinder", model.copy("Recognition stays on-device", "识别保留在设备上"), model.copy("Photos, screenshots and PDFs are read locally with Apple Vision. We do not send them to an AI service or a developer server.", "照片、截图和 PDF 由 Apple Vision 本地读取，不发送到 AI 服务或开发者服务器。"))
+                    item("icloud", model.copy("Private iCloud sync", "私人 iCloud 同步"), model.copy("Reviewed assignments and course preferences are saved locally and, when available, synchronized through your private iCloud database. Raw OCR and screenshots are not synchronized. Storage counts toward your iCloud allowance.", "已核对的作业和课程偏好保存在本机，并在可用时通过私人 iCloud 数据库同步。原始识别文本和截图不会同步，占用你的 iCloud 存储配额。"))
+                    item("link", model.copy("Optional connections", "可选连接"), model.copy("Only selected tasks are exported to Apple apps or your authorized Google Calendar. Google authorization opens the secure system browser; credentials stay in this device’s Keychain. Your Google account ID is used to match linked calendars, and your email is shown only on this device. No Google analytics SDK is included. We do not request school credentials. Account providers handle exported data under their policies.", "仅将所选任务导出到 Apple 应用或已授权的 Google 日历。Google 授权通过安全系统浏览器进行，凭据保存在本机钥匙串。Google 账户标识用于匹配关联日历，邮箱仅在本机显示。不包含 Google 分析 SDK，不索取学校账户凭据。导出数据由账户服务商按其政策处理。"))
+                    item("trash", model.copy("You control your data", "数据由你控制"), model.copy("Clear Import removes only temporary review data. Delete saved assignments from Your Task Calendar; choose separately whether to delete app-owned linked items. Minimal deletion markers may remain to prevent old offline copies reappearing. Revoke connections in Settings. No ads or school-account access.", "清空导入仅移除临时核对数据。可在作业日历中删除已保存作业，并单独选择是否删除本应用创建的关联条目。可能保留最小删除标记以防旧离线副本重新出现。可在设置中撤销连接，无广告、不访问学校账户。"))
+                    Link(model.copy("Published privacy policy", "公开隐私政策"), destination: URL(string: "https://github.com/NerdyKevvy/ReminderSnap-v2.0/blob/main/AppStore/PRIVACY-POLICY.md")!)
+                }
+            }
+        }.padding(24).background(Studio.background).foregroundStyle(Studio.silver).preferredColorScheme(.dark)
         #if os(macOS)
-        .frame(width: 620, height: 700)
+        .frame(width: 620, height: 660)
         #endif
     }
-    private func section(_ title: String, _ chineseTitle: String, _ detail: String, _ chineseDetail: String) -> some View {
+    private func item(_ icon: String, _ title: String, _ detail: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(model.copy(title, chineseTitle)).font(.headline)
-            Text(model.copy(detail, chineseDetail)).font(.system(size: 13)).foregroundStyle(Studio.muted).lineSpacing(4)
+            Label(title, systemImage: icon).font(.headline)
+            Text(detail).font(.system(size: 13)).foregroundStyle(Studio.muted).lineSpacing(3)
         }
     }
 }

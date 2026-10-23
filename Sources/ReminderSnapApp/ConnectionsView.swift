@@ -8,16 +8,20 @@ struct ConnectionsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 Eyebrow(text: model.copy("Help, whenever you need it", "随时为你提供帮助"))
-                Text(model.copy("A place for every deadline.", "让截止日期各就其位。"))
+                Text(model.copy("One snapshot. One assignment center.", "一张截图，一个作业中心。"))
                     .font(.system(size: compact ? 29 : 36, weight: .medium)).tracking(-1)
-                Text(model.copy("Tasks stay in Reminders. Companion blocks live in a calendar you can hide at any time.", "任务保存在提醒事项中，伴随时间块保存在可随时隐藏的日历中。"))
+                Text(model.copy("Import → check → your task calendar. No school account needed.", "导入 → 核对 → 作业日历，无需学校账户。"))
                     .font(.system(size: 14)).foregroundStyle(Studio.muted).fixedSize(horizontal: false, vertical: true)
-                GuideSteps()
-                AppleConnectionsSection()
-                PermissionRestartNotice()
-                GuideChecklist()
+                PurposeVisual(scene: 1)
+                PurposeVisual(scene: 2)
+                Text(model.copy("Choose your workflow in Settings. Keep assignments here, or connect your calendar when you need it.", "在设置中选择工作流，可在这里管理作业，也可按需连接日历。"))
+                    .font(.callout).foregroundStyle(Studio.muted)
+                Button(model.copy("Open workflow settings", "打开工作流设置")) { model.page = .settings }.buttonStyle(QuietButtonStyle())
+                DisclosureGroup(model.copy("Troubleshooting & Apple setup details", "故障排查与 Apple 设置详情")) {
+                    GuideChecklist().padding(.top, 12)
+                }
                 Button(model.copy("Replay first-launch guide", "重新查看首次使用引导")) { model.showingSetup = true }.buttonStyle(QuietButtonStyle())
-                Button(model.copy("Back to Add Reminder", "返回添加提醒")) { model.page = .addReminder }.buttonStyle(SilverButtonStyle())
+                Button(model.copy("Open my task calendar", "打开作业日历")) { model.page = .calendar }.buttonStyle(SilverButtonStyle())
             }.padding(compact ? 22 : 34).frame(maxWidth: 850, alignment: .leading).frame(maxWidth: .infinity)
         }
     }
@@ -30,7 +34,7 @@ struct AppleConnectionsSection: View {
                 Text(model.copy("Connect your Apple apps", "连接 Apple 应用")).font(.title3.weight(.medium))
                 FieldLabel(title: model.copy("Where to save", "保存位置")) {
                     Picker(model.copy("Output", "输出"), selection: $model.outputMode) {
-                        ForEach(OutputMode.allCases) { Text(model.t($0.rawValue)).tag($0) }
+                        ForEach(OutputMode.allCases.filter { $0.usesReminders || $0.usesCalendar }) { Text(model.t($0.rawValue)).tag($0) }
                     }.pickerStyle(.menu)
                 }
                 if model.outputMode.usesReminders { DestinationPanel(reminders: true) }
@@ -61,7 +65,7 @@ struct GuideChecklist: View {
                         Text(model.copy("For native reminders in Calendar, use macOS 15 / iOS 18 or later and enable Scheduled Reminders in Calendar. Companion blocks are separate events and also work on older supported systems.", "在日历中查看原生提醒事项需要 macOS 15 / iOS 18 或更新系统，并在日历中开启「计划的提醒事项」。伴随时间块是独立日程，也支持较旧系统。"))
                         Text(model.copy("Choose a dedicated calendar such as “ReminderSnap Deadlines” so you can hide all companion blocks with one calendar checkbox.", "建议使用独立日历，例如「ReminderSnap Deadlines」，这样可通过日历的勾选框统一隐藏时间块。"))
                         Text(model.copy("Allow notifications for Apple Reminders and Calendar in system settings. Focus and device settings can silence alerts. Test one task before relying on notifications.", "请在系统设置中允许 Apple 提醒事项和日历发送通知。专注模式和设备设置可能会静音通知，正式使用前请先测试一个任务。"))
-                        Text(model.copy("The real deadline never moves. A 23:59 deadline can have a separate 22:00–23:00 Calendar block. Extra alerts are delivered by Calendar; the deadline alert belongs to Reminders.", "真实截止时间不会改变。23:59 截止的任务可以配有独立的 22:00–23:00 日历时间块。额外通知由日历发送，截止时通知由提醒事项发送。"))
+                        Text(model.copy("The real deadline never moves. A 23:59 deadline can have a separate 22:00–23:00 planning block. ReminderSnap can send your custom alerts itself. If you turn its alerts off, linked calendars can provide alerts instead.", "真实截止时间不会改变。23:59 截止的任务可配有独立的 22:00–23:00 计划块。ReminderSnap 可自行发送自定义通知；关闭应用通知时，可由关联日历通知。"))
                         Text(model.copy("No access or no list? Open Settings, enable full Reminders/Calendar access, then return and choose Check again. Select an existing destination or create one above. No iCloud account here? Set it up in Apple’s apps first.", "没有权限或列表？请在系统设置中开启提醒事项/日历的完整访问权限，返回后点击「重新检查」。在上方选择或创建目标。若未显示 iCloud 账户，请先在 Apple 应用中完成设置。"))
                     }.font(.system(size: 12)).foregroundStyle(Studio.muted).lineSpacing(3)
                 }
@@ -122,8 +126,9 @@ struct GuideSteps: View {
 struct DestinationPanel: View {
     @EnvironmentObject private var model: AppModel
     let reminders: Bool
-    @State private var name = ""
+    @State private var name = "ReminderSnap Assignments"
     @State private var accountID = ""
+    @State private var createExpanded = false
     private var access: Bool { reminders ? model.reminderAccess : model.calendarAccess }
     private var permission: PermissionState { reminders ? model.reminderPermission : model.calendarPermission }
     private var awaitingConfirmation: Bool {
@@ -153,7 +158,17 @@ struct DestinationPanel: View {
                     if !destinations.contains(where: { $0.id == selectedID.wrappedValue }) {
                         Text(model.copy("Choose or create a destination to finish connecting.", "选择或创建目标以完成连接。")).font(.caption).foregroundStyle(Studio.amber)
                     }
-                    DisclosureGroup(reminders ? model.copy("Create a new list", "创建新列表") : model.copy("Create a dedicated calendar", "创建专用日历")) {
+                    if reminders {
+                        HStack(spacing: 12) {
+                            Image(systemName: "checklist").font(.title2)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(name.isEmpty ? "ReminderSnap Assignments" : name).font(.system(size: 12, weight: .medium))
+                                Text(model.copy("A list is simply a folder of reminders. Your assignments will appear together here.", "列表就是收纳提醒事项的文件夹，你的作业会集中显示在这里。"))
+                                    .font(.caption).foregroundStyle(Studio.muted)
+                            }
+                        }.padding(12).background(Studio.elevated).clipShape(RoundedRectangle(cornerRadius: 10))
+                    }
+                    DisclosureGroup(reminders ? model.copy("Create a new list", "创建新列表") : model.copy("Create a dedicated calendar", "创建专用日历"), isExpanded: $createExpanded) {
                         VStack(alignment: .leading, spacing: 12) {
                             TextField(reminders ? model.copy("e.g. University", "例如：大学任务") : "ReminderSnap Deadlines", text: $name).studioField()
                             Picker(model.copy("Account", "账户"), selection: Binding(get: { chosenAccount }, set: { accountID = $0 })) {
@@ -179,6 +194,6 @@ struct DestinationPanel: View {
                     Button(model.copy("Connect", "连接")) { model.connect(reminders: reminders) }.buttonStyle(SilverButtonStyle(small: true)).disabled(model.isSettingUp || awaitingConfirmation)
                 }
             }
-        }
+        }.onAppear { createExpanded = destinations.isEmpty }
     }
 }

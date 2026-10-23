@@ -4,7 +4,7 @@ import Foundation
 /// can retain preferences from an earlier build with the same bundle identifier.
 @MainActor
 public final class SetupGuideProgress {
-    public static let currentRevision = 1
+    public static let currentRevision = 2
     public static let completionKey = "ReminderSnap.Onboarding.CompletedRevision"
     private let defaults: UserDefaults
 

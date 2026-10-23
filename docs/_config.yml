@@ -1,0 +1,9 @@
+title: ReminderSnap
+description: Turn assignment screenshots into reviewed deadlines.
+url: https://nerdykevvy.github.io
+baseurl: /ReminderSnap-v2.0
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: default

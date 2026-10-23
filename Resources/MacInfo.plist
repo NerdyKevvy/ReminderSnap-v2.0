@@ -18,6 +18,9 @@
 <key>NSHumanReadableCopyright</key><string>Copyright © 2026 NerdyKevvy</string>
 <key>ITSAppUsesNonExemptEncryption</key><false/>
 <key>ReminderSnapPrivacyPolicyURL</key><string>$(REMINDERSNAP_PRIVACY_POLICY_URL)</string>
+<key>ReminderSnapCloudSyncEnabled</key><true/>
+<key>GIDClientID</key><string>$(GOOGLE_CLIENT_ID)</string>
+<key>CFBundleURLTypes</key><array><dict><key>CFBundleURLSchemes</key><array><string>$(GOOGLE_REVERSED_CLIENT_ID)</string></array></dict></array>
 <key>NSRemindersUsageDescription</key><string>Add the assignments you review to your selected Apple Reminders list.</string>
 <key>NSRemindersFullAccessUsageDescription</key><string>Find duplicates and save only the reviewed assignment reminders you select.</string>
 <key>NSCalendarsUsageDescription</key><string>Create optional companion deadline blocks in the calendar you choose.</string>

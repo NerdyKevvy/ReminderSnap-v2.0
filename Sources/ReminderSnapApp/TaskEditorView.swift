@@ -9,7 +9,7 @@ struct TaskEditorView: View {
     let onApply: (ImportItem) -> Void
 
     private var valid: Bool {
-        draft.candidate.dueDate != nil && !draft.candidate.courseCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        draft.candidate.dueDate != nil &&
         !draft.candidate.assignmentName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
     var body: some View {
@@ -26,7 +26,7 @@ struct TaskEditorView: View {
             Divider().overlay(Studio.line)
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
-                    FieldLabel(title: model.copy("Course", "课程")) {
+                    FieldLabel(title: model.copy("Course · optional", "课程 · 可选")) {
                         TextField("MA-UY 2034", text: $draft.candidate.courseCode).studioField()
                     }
                     FieldLabel(title: model.copy("Task name", "任务名称")) {
@@ -37,6 +37,18 @@ struct TaskEditorView: View {
                     }.font(.system(size: 12)).foregroundStyle(Studio.muted)
                     Panel(padding: 16) {
                         VStack(alignment: .leading, spacing: 16) {
+                            Toggle(model.copy("ReminderSnap notifications", "ReminderSnap 通知"), isOn: $draft.appAlertsEnabled)
+                            if draft.appAlertsEnabled && draft.candidate.hasExplicitTime {
+                                LeadTimeEditor(values: $draft.appAlertLeadTimes, purpose: model.copy("Before the actual deadline", "在真实截止时间之前"))
+                            } else if draft.appAlertsEnabled {
+                                Text(model.copy("Date-only tasks use \(model.dateOnlyAlertHour):00 that morning and the previous morning. Change the default in Settings.", "仅日期任务会在当天及前一天的 \(model.dateOnlyAlertHour):00 通知，可在设置中调整默认时间。"))
+                                    .font(.caption).foregroundStyle(Studio.muted)
+                            }
+                            Text(model.copy("Enable notifications in Settings on this device. No calendar connection is required.", "请在本机设置中开启通知，无需连接其他日历应用。")).font(.caption).foregroundStyle(Studio.muted)
+                        }
+                    }
+                    Panel(padding: 16) {
+                        VStack(alignment: .leading, spacing: 16) {
                             Text(model.copy("The real deadline", "真实截止时间")).font(.system(size: 14, weight: .semibold))
                             if draft.candidate.dueDate != nil {
                                 DatePicker(model.copy("Due", "截止"), selection: Binding(get: { draft.candidate.dueDate ?? Date() }, set: { draft.candidate.dueDate = $0 }), displayedComponents: draft.candidate.hasExplicitTime ? [.date, .hourAndMinute] : [.date])
@@ -45,7 +57,7 @@ struct TaskEditorView: View {
                             } else {
                                 Button(model.copy("Choose a deadline", "选择截止日期")) { draft.candidate.dueDate = Date() }.buttonStyle(QuietButtonStyle())
                             }
-                            Text(draft.candidate.timeZoneIdentifier ?? TimeZone.current.identifier).font(.caption).foregroundStyle(Studio.muted)
+                            TextField(model.copy("Timezone", "时区"), text: Binding(get: { draft.candidate.timeZoneIdentifier ?? TimeZone.current.identifier }, set: { draft.candidate.timeZoneIdentifier = $0 })).studioField()
                         }
                     }
                     if !draft.candidate.warnings.isEmpty {
@@ -55,27 +67,16 @@ struct TaskEditorView: View {
                             Toggle(model.copy("I have checked these details", "我已核对这些详情"), isOn: $checked)
                         }.font(.system(size: 12))
                     }
+                    if model.outputMode.usesCalendar || model.outputMode == .google {
                     Panel(padding: 16) {
                         VStack(alignment: .leading, spacing: 16) {
-                            Toggle(model.copy("Notify at the deadline", "截止时通知"), isOn: $draft.deadlineNotificationEnabled)
-                                .disabled(!model.outputMode.usesReminders)
-                            Text(model.copy("Uses Apple Reminders. Date-only reminders follow your system’s all-day notification settings.", "使用 Apple 提醒事项。全天提醒遵循系统的全天通知设置。"))
+                            Toggle(model.copy("Calendar companion block", "日历伴随时间块"), isOn: $draft.companionEventEnabled)
+                            Text(model.copy("For 23:59 deadlines: a 22:00–23:00 block on the same date. Your reminder’s actual deadline never changes.", "23:59 截止的任务会在当天创建 22:00–23:00 的日历时间块，真实截止时间不变。"))
+                                .font(.caption).foregroundStyle(Studio.muted)
+                            Text(model.copy("If ReminderSnap notifications are off, the linked calendar uses this task’s alert times instead. Planning blocks never change the real deadline.", "若关闭 ReminderSnap 通知，关联日历将使用本任务的通知时间。计划块不会改变真实截止日期。"))
                                 .font(.caption).foregroundStyle(Studio.muted)
                         }
                     }
-                    Panel(padding: 16) {
-                        VStack(alignment: .leading, spacing: 16) {
-                            Toggle(model.copy("Calendar companion block", "日历伴随时间块"), isOn: $draft.companionEventEnabled).disabled(model.outputMode == .calendar)
-                            Text(model.copy("For 23:59 deadlines: a 22:00–23:00 block on the same date. Your reminder’s actual deadline never changes.", "23:59 截止的任务会在当天创建 22:00–23:00 的日历时间块，真实截止时间不变。"))
-                                .font(.caption).foregroundStyle(Studio.muted)
-                            if draft.companionEventEnabled {
-                                if !model.outputMode.usesCalendar {
-                                    Text(model.copy("Choose Reminders + Calendar in User Guide to save this block.", "在「使用指南」中选择「提醒事项 + 日历」以保存时间块。")).font(.caption).foregroundStyle(Studio.amber)
-                                }
-                                Toggle(model.copy("Alert when the block starts", "时间块开始时通知"), isOn: $draft.companionEventStartAlertEnabled)
-                                LeadTimeEditor(values: $draft.companionEventAdditionalLeadTimes)
-                            }
-                        }
                     }
                     FieldLabel(title: model.copy("Title preview", "标题预览")) {
                         Text(draft.candidate.reminderTitle).font(.system(size: 13)).textSelection(.enabled)
@@ -101,11 +102,18 @@ struct TaskEditorView: View {
 struct LeadTimeEditor: View {
     @EnvironmentObject private var model: AppModel
     @Binding var values: [TimeInterval]
+    var purpose: String? = nil
     @State private var amount = "2"
     @State private var unit: Double = 3600
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(model.copy("Extra Calendar alerts · before the real deadline", "额外日历通知 · 相对于真实截止时间")).font(.system(size: 11, weight: .medium)).foregroundStyle(Studio.muted)
+            Text(purpose ?? model.copy("Extra Calendar alerts · before the real deadline", "额外日历通知 · 相对于真实截止时间")).font(.system(size: 11, weight: .medium)).foregroundStyle(Studio.muted)
+            if purpose != nil {
+                Toggle(model.copy("Also notify at the deadline", "截止时也通知"), isOn: Binding(get: { values.contains(0) }, set: { enabled in
+                    values.removeAll { $0 == 0 }
+                    if enabled { values.append(0) }
+                })).font(.caption).disabled(!values.contains(0) && values.count >= 4)
+            }
             ForEach(values.sorted(by: >), id: \.self) { value in
                 HStack {
                     Label(label(value), systemImage: "bell.badge").font(.system(size: 12))
@@ -128,11 +136,12 @@ struct LeadTimeEditor: View {
                     values = Array(Set(values + [seconds])).sorted(by: >)
                 }.buttonStyle(QuietButtonStyle()).disabled(values.count >= 4 || Double(amount).map { !$0.isFinite || $0 <= 0 } != false)
             }
-            Text(model.copy("Up to four extra alerts. Delivery depends on Calendar notifications and Focus settings.", "最多四个额外通知。通知送达受日历通知与专注模式设置影响。"))
+            Text(purpose == nil ? model.copy("Up to four extra alerts. Delivery depends on Calendar notifications and Focus settings.", "最多四个额外通知。通知送达受日历通知与专注模式设置影响。") : model.copy("Up to four alert times. Device notification permissions and Focus settings apply.", "最多四个通知时间，送达受设备通知权限和专注模式影响。"))
                 .font(.system(size: 10)).foregroundStyle(Studio.muted)
         }
     }
     private func label(_ seconds: TimeInterval) -> String {
+        if seconds == 0 { return model.copy("At the deadline", "截止时") }
         let number: Double, suffix: String
         if seconds.truncatingRemainder(dividingBy: 86400) == 0 { number = seconds / 86400; suffix = model.copy("day(s) before", "天前") }
         else if seconds.truncatingRemainder(dividingBy: 3600) == 0 { number = seconds / 3600; suffix = model.copy("hour(s) before", "小时前") }

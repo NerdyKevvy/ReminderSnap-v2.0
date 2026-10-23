@@ -14,7 +14,9 @@ if [[ "$RELEASE_PRIVACY_URL" != https://* ]]; then
   exit 1
 fi
 mkdir -p Artifacts
-archive_path="$project_dir/Artifacts/ReminderSnap-$platform-2.0.xcarchive"
+release_version="${RELEASE_VERSION:-2.1}"
+release_build="${RELEASE_BUILD:-20100}"
+archive_path="$project_dir/Artifacts/ReminderSnap-$platform-$release_version-$release_build.xcarchive"
 if [[ -e "$archive_path" ]]; then
   echo 'This archive already exists. Preserve it or choose a new build number/path before archiving again.' >&2
   exit 1
@@ -30,6 +32,6 @@ xcodebuild -project ReminderSnap.xcodeproj -scheme "ReminderSnap-$platform" \
   -configuration Release -destination "generic/platform=$platform" \
   -derivedDataPath Build -archivePath "$archive_path" \
   "${provisioning_options[@]}" \
-  DEVELOPMENT_TEAM="$RELEASE_TEAM_ID" REMINDERSNAP_PRIVACY_POLICY_URL="$RELEASE_PRIVACY_URL" archive
+  DEVELOPMENT_TEAM="$RELEASE_TEAM_ID" MARKETING_VERSION="$release_version" CURRENT_PROJECT_VERSION="$release_build" REMINDERSNAP_PRIVACY_POLICY_URL="$RELEASE_PRIVACY_URL" archive
 echo "Archive: $archive_path"
 echo 'Validate and distribute with Xcode Organizer after the release checklist is complete.'
