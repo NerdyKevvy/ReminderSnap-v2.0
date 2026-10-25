@@ -38,7 +38,7 @@ struct ImportItem: Identifiable {
     ) {
         self.id = candidate.id
         self.candidate = candidate
-        self.isSelected = candidate.dueDate != nil
+        self.isSelected = TaskTextPolicy.maySelectAutomatically(candidate)
         self.status = candidate.warnings.isEmpty ? .ready : .needsReview
         self.deadlineNotificationEnabled = deadlineNotificationEnabled
         self.companionEventEnabled = companionEventEnabled

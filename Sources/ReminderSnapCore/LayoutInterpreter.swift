@@ -5,6 +5,7 @@ import CoreGraphics
 /// release date, or a date embedded in an assignment name as a separate task.
 enum LayoutInterpreter {
     static func parse(_ document: OCRDocument, context: ImportContext) -> [AssignmentCandidate]? {
+        if let table = TableLayoutReader.parse(document, context: context) { return table }
         let lines = document.lines.sorted { $0.topDownY < $1.topDownY }
         let labels = Set(lines.map { clean($0.text).lowercased() })
         if labels.contains("released"), labels.contains("status"),
@@ -131,19 +132,21 @@ enum LayoutInterpreter {
         return nil
     }
     static func section(in text: String) -> String? {
-        text.firstRegexMatch(pattern: #"\b([A-Z]\d{1,2}L[AB]|[A-Z]\d{1,2}LB)\b"#)?.capture(1)
+        text.firstRegexMatch(pattern: #"\b([A-Z]\d{1,2}L[AB]|[A-Z]\d{1,2}LB)\b"#)?.capture(1) ??
+            text.firstRegexMatch(pattern: #"\bsection\s*[:#-]?\s*([A-Z0-9]{1,12})\b"#, options: [.caseInsensitive])?.capture(1)?.uppercased()
     }
     private static func clean(_ text: String) -> String {
-        text.replacingOccurrences(of: #"^[\s•●○◦·✓✔☑]+"#, with: "", options: .regularExpression).trimmed
+        TaskTextPolicy.clean(text)
     }
     private static func statusLabel(_ text: String) -> Bool {
+        if TaskTextPolicy.isStatus(text) { return true }
         let value = clean(text).lowercased()
         return ["submitted", "no submission", "not submitted", "not complete", "completed"].contains(value) ||
             value.range(of: #"^\d+(?:\.\d+)?\s*/\s*\d+(?:\.\d+)?$"#, options: .regularExpression) != nil
     }
     private static func titleFragment(_ text: String) -> Bool {
         let value = clean(text)
-        return !value.isEmpty && !statusLabel(value) && !navigation(value) &&
+        return !value.isEmpty && !TaskTextPolicy.isMetadata(value) && !statusLabel(value) && !navigation(value) &&
             !["name", "status", "released", "due", "attachments"].contains(value.lowercased()) &&
             !value.localizedCaseInsensitiveContains("days left") && !value.localizedCaseInsensitiveContains("hours left") &&
             (!DeadlineParser.containsDate(value) || isTitleWithEmbeddedDate(value))

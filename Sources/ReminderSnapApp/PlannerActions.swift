@@ -77,7 +77,7 @@ extension AppModel {
         guard !isProcessing, !isDemo else { return }
         let selected = visibleImportItems.filter(\.isSelected)
         guard !selected.isEmpty else { showingMissingDetails = true; return }
-        guard selected.allSatisfy({ $0.candidate.dueDate != nil && !$0.candidate.assignmentName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) else {
+        guard selected.allSatisfy({ $0.candidate.dueDate != nil && TaskTextPolicy.isAssignmentTitle($0.candidate.assignmentName) }) else {
             showingMissingDetails = true; return
         }
         guard planner.ready else { statusMessage = "Wait for the assignment calendar to finish opening."; return }
@@ -92,7 +92,8 @@ extension AppModel {
                     task.appleReminders = outputMode.usesReminders
                     task.appleCalendar = outputMode.usesCalendar
                     task.companionBlock = item.companionEventEnabled
-                    if let existing = planner.tasks.first(where: { $0.id == task.id }) {
+                    if let existing = planner.tasks.first(where: { !$0.isDeleted && $0.candidate.identityKey == task.candidate.identityKey }) {
+                        task.id = existing.id
                         task.createdAt = existing.createdAt
                         task.isCompleted = existing.isCompleted
                         task.exportOwner = existing.exportOwner
@@ -124,9 +125,29 @@ extension AppModel {
         do {
             try planner.save(profile)
             for index in items.indices where items[index].candidate.courseTag == profile.id {
-                items[index].isSelected = items[index].candidate.dueDate != nil && SectionSelection.matches(items[index].candidate, profile: profile)
+                if !SectionSelection.matches(items[index].candidate, profile: profile) { items[index].isSelected = false }
             }
         } catch { statusMessage = LocalizedMessage(verbatim: error.localizedDescription) }
+    }
+    @discardableResult
+    func editCourse(_ original: CourseProfile, updated: CourseProfile) -> Bool {
+        let updated = updated.renamed(updated.name)
+        guard !updated.name.isEmpty, !planner.courses.contains(where: { $0.id == updated.id && $0.id != original.id }) else {
+            statusMessage = LocalizedMessage(verbatim: copy("Enter a unique course name. That course may already exist.", "请输入唯一的课程名称，该课程可能已经存在。")); return false
+        }
+        do {
+            try planner.replaceCourse(original, with: updated)
+            for index in items.indices where items[index].candidate.courseTag == original.id {
+                items[index].candidate.courseCode = updated.name
+                if !SectionSelection.matches(items[index].candidate, profile: updated) { items[index].isSelected = false }
+            }
+            Task { await flushPendingExports() }
+            return true
+        } catch { statusMessage = LocalizedMessage(verbatim: error.localizedDescription); return false }
+    }
+    func removeCourse(_ profile: CourseProfile) {
+        do { try planner.deleteCourse(profile) }
+        catch { statusMessage = LocalizedMessage(verbatim: error.localizedDescription) }
     }
     func applyBatchDetails() {
         rereadText()

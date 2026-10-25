@@ -18,12 +18,14 @@ struct MissingDetailsView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
                     Label(model.copy("\(model.items.count) tasks found", "识别到 \(model.items.count) 项任务"), systemImage: "checklist")
-                    if model.items.contains(where: { $0.candidate.courseCode.isEmpty }) {
+                    if !model.documents.isEmpty {
                         Panel(padding: 16) {
                             VStack(alignment: .leading, spacing: 12) {
-                                Text(model.copy("Which course is this?", "这是哪门课？")).font(.headline)
-                                TextField(model.copy("e.g. I&C SCI 31 · optional", "例如：I&C SCI 31 · 可选"), text: $model.batchCourse).studioField()
-                                Text(model.copy("Only tasks without a course use this value. You can also keep them uncategorized.", "仅为缺少课程的任务补充信息，也可以保留为未分类。"))
+                                Text(model.copy("Course for each image", "每张图片的课程" )).font(.headline)
+                                ForEach(Array(Set(model.documents.map(\.sourceName))).sorted(), id: \.self) { source in
+                                    SourceCourseChoice(source: source)
+                                }
+                                Text(model.copy("Correct a detected course or choose one for this image only. A new import starts fresh. Leave blank to keep tasks uncategorized.", "可修正识别课程，选择仅作用于此图片。新导入不会沿用，留空则保留为未分类。"))
                                     .font(.caption).foregroundStyle(Studio.muted)
                             }
                         }
@@ -63,6 +65,32 @@ struct MissingDetailsView: View {
         #if os(macOS)
         .frame(width: 600, height: 690)
         #endif
+    }
+}
+
+struct SourceCourseChoice: View {
+    @EnvironmentObject private var model: AppModel
+    let source: String
+    private var detected: [String] {
+        Array(Set(model.items.filter { $0.candidate.sourceImages.contains(source) }.map(\.candidate.courseCode))).filter { !$0.isEmpty }.sorted()
+    }
+    private var course: Binding<String> {
+        Binding(get: { model.importCourseOverrides[source] ?? (detected.count == 1 ? detected[0] : "") },
+                set: { model.importCourseOverrides[source] = $0 })
+    }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(source).font(.caption).foregroundStyle(Studio.muted).lineLimit(2)
+            HStack {
+                TextField(detected.count > 1 ? model.copy("Multiple courses detected · keep as read", "识别到多门课程 · 保留识别结果") : model.copy("Course name · optional", "课程名称 · 可选"), text: course).studioField()
+                Menu {
+                    ForEach(model.planner.courses.filter { $0.isArchived != true }) { profile in
+                        Button(profile.name) { course.wrappedValue = profile.name }
+                    }
+                    Button(model.copy("Uncategorized", "未分类")) { course.wrappedValue = "" }
+                } label: { Image(systemName: "chevron.down.circle").padding(8) }.accessibilityLabel(model.copy("Choose saved course", "选择已保存课程"))
+            }
+        }
     }
 }
 

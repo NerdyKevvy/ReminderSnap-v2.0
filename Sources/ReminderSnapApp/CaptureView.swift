@@ -36,7 +36,7 @@ struct CaptureView: View {
             }
             DisclosureGroup(isExpanded: $contextExpanded) {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text(model.copy("Only fill in information missing from your screenshot.", "仅补充截图中缺少的信息。"))
+                    Text(model.copy("Context applies to this import only. Use Fix details after reading to correct the course for each image.", "补充信息仅用于本次导入。识别后可通过“补全信息”逐张修正课程。"))
                         .font(.system(size: 11)).foregroundStyle(Studio.muted)
                     HStack(spacing: 10) {
                         FieldLabel(title: model.copy("Course", "课程")) { TextField("MA-UY 2034", text: $model.batchCourse).studioField() }

@@ -25,6 +25,7 @@ final class PlannerStore: ObservableObject {
     private var loading = false
     private var activePartition = ""
     private var activeCloud = false
+    private let storeDirectory: URL?
     private var cloudEnabled: Bool {
         #if DEBUG
         if ProcessInfo.processInfo.environment["REMINDERSNAP_LOCAL_ONLY"] == "1" { return false }
@@ -32,7 +33,8 @@ final class PlannerStore: ObservableObject {
         return Bundle.main.object(forInfoDictionaryKey: "ReminderSnapCloudSyncEnabled") as? Bool == true
     }
 
-    init() {
+    init(storeDirectory: URL? = nil) {
+        self.storeDirectory = storeDirectory
         observers.append(NotificationCenter.default.addObserver(forName: .CKAccountChanged, object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor in await self?.open(recheckAccount: true) }
         })
@@ -79,7 +81,7 @@ final class PlannerStore: ObservableObject {
         // Do not display the prior account while changing storage partitions.
         tasks = []; courses = []; onChange?()
         do {
-            let root = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+            let root = try storeDirectory ?? FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
                 .appendingPathComponent("ReminderSnap", isDirectory: true)
             try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
             let store = NSPersistentCloudKitContainer(name: "AssignmentCenter", managedObjectModel: Self.schema())
@@ -165,7 +167,7 @@ final class PlannerStore: ObservableObject {
             }
             courses = Dictionary(grouping: profiles, by: \.id).values.compactMap {
                 $0.max { $0.modifiedAt < $1.modifiedAt }
-            }.sorted { $0.name < $1.name }
+            }.filter { $0.isDeleted != true }.sorted { $0.name < $1.name }
             let integrationRows = try context.fetch(NSFetchRequest<NSManagedObject>(entityName: "IntegrationRow"))
             googleCalendars = [:]
             for row in integrationRows {
@@ -184,6 +186,35 @@ final class PlannerStore: ObservableObject {
     }
     func save(_ profile: CourseProfile) throws {
         try put(profile, key: profile.id, entity: "CourseRow"); reload()
+    }
+
+    /// Rename a course and its assignments in one local transaction. Task IDs
+    /// and export identifiers stay stable so linked entries are edited in place.
+    func replaceCourse(_ original: CourseProfile, with updated: CourseProfile) throws {
+        guard let context = container?.viewContext else { return }
+        guard courses.first(where: { $0.id == original.id })?.modifiedAt == original.modifiedAt else {
+            throw NSError(domain: "Planner", code: 2, userInfo: [NSLocalizedDescriptionKey: "This course changed on another device. Close and reopen its editor."])
+        }
+        do {
+            if original.id != updated.id {
+                try put(original.tombstone(), key: original.id, entity: "CourseRow", commit: false)
+            }
+            try put(updated, key: updated.id, entity: "CourseRow", commit: false)
+            for var task in tasks where !task.isDeleted && task.candidate.courseTag == original.id && original.name != updated.name {
+                task.candidate.courseCode = updated.name
+                if let title = task.candidate.titleOverride, title.hasPrefix(original.id + " ") {
+                    task.candidate.titleOverride = updated.id + title.dropFirst(original.id.count)
+                }
+                task.modifiedAt = Date(); task.exportError = nil
+                try put(task, key: task.id.uuidString, entity: "AssignmentRow", commit: false)
+            }
+            try context.save(); reload()
+        } catch { context.rollback(); reload(); throw error }
+    }
+
+    func deleteCourse(_ profile: CourseProfile) throws {
+        // Keep saved assignments and links. Only remove the reusable preference.
+        try put(profile.tombstone(), key: profile.id, entity: "CourseRow"); reload()
     }
     func saveGoogleCalendar(_ calendar: String, account: String) throws {
         try put(calendar, key: account, entity: "IntegrationRow"); reload()
@@ -244,7 +275,7 @@ final class PlannerStore: ObservableObject {
             localAssignmentsAvailable = false; reload()
         } catch { self.error = error.localizedDescription }
     }
-    private func put<T: Encodable>(_ value: T, key: String, entity: String) throws {
+    private func put<T: Encodable>(_ value: T, key: String, entity: String, commit: Bool = true) throws {
         guard ready, let context = container?.viewContext else {
             throw NSError(domain: "Planner", code: 1, userInfo: [NSLocalizedDescriptionKey: "Wait for the assignment calendar to finish opening."])
         }
@@ -257,7 +288,7 @@ final class PlannerStore: ObservableObject {
         // Keep duplicate backing rows consistent; do not delete a row remotely
         // and accidentally resurrect its older payload after an offline merge.
         for duplicate in rows.dropFirst() { duplicate.setValue(data, forKey: "payload") }
-        try context.save()
+        if commit { try context.save() }
         if iCloudAvailable { syncState = "Saved on this device · iCloud sync pending" }
     }
 }

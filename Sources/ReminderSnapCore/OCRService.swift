@@ -22,6 +22,7 @@ public enum OCRServiceError: LocalizedError {
 
 public final class OCRService {
     private lazy var imageContext = CIContext(options: [.cacheIntermediates: false])
+    private var lastTextAngle: CGFloat = 0
     public init() {}
 
     public func recognize(url: URL) throws -> OCRDocument {
@@ -87,16 +88,26 @@ public final class OCRService {
         return OCRDocument(sourceName: name, lines: ordered(lines), readingMethod: "Embedded PDF text • no OCR")
     }
 
-    private func recognize(image: CGImage, name: String) throws -> OCRDocument {
+    private func recognize(image original: CGImage, name: String) throws -> OCRDocument {
+        var image = original
         var lines = try read(image)
         var method = "Apple Vision • local"
-        // Mobile Gradescope wraps short names and a single underlined number.
-        // Re-read just that narrow column without dictionary correction, which
-        // otherwise drops digits or turns a handwritten-looking 7 into Z.
-        if let header = lines.first(where: { $0.text.lowercased().contains("name") && $0.topDownY < 0.5 }),
-           let status = lines.first(where: { $0.text.lowercased().contains("status") && abs($0.topDownY - header.topDownY) < 0.04 }),
-           lines.contains(where: { $0.text.lowercased() == "released" }),
-           lines.contains(where: { $0.text.lowercased().hasPrefix("homework") && $0.text.split(separator: " ").count == 1 }) {
+        let angle = lastTextAngle
+        let averageConfidence = lines.isEmpty ? 0 : lines.map(\.confidence).reduce(0, +) / Float(lines.count)
+        // A bounded geometry pass for photographed screens. Screenshots with
+        // horizontal text skip it; a failed or worse correction keeps the original.
+        if abs(angle) > 0.012 || averageConfidence < 0.7,
+           let corrected = try straightenScreen(image, angle: angle) {
+            let retry = try read(corrected)
+            if readingQuality(retry, name: name) >= readingQuality(lines, name: name), !retry.isEmpty {
+                image = corrected; lines = retry; method += " • screen geometry correction"
+            }
+        }
+        // Isolate the title column without dictionary correction. This recovers
+        // wrapped identifiers and avoids letting nearby grades influence names.
+        if let header = lines.first(where: { TaskTextPolicy.clean($0.text).lowercased() == "name" && $0.topDownY < 0.5 }),
+           let status = lines.first(where: { TaskTextPolicy.clean($0.text).lowercased() == "status" && abs($0.topDownY - header.topDownY) < 0.10 }),
+           lines.contains(where: { TaskTextPolicy.clean($0.text).lowercased() == "released" }) {
             let left = max(0, header.boundingBox.minX - 0.04)
             let right = max(left + 0.03, status.centerX - 0.01)
             let region = CGRect(x: left, y: 0, width: right - left, height: max(0.05, header.boundingBox.minY - 0.01))
@@ -109,9 +120,9 @@ public final class OCRService {
                             y: region.minY + $0.boundingBox.minY * region.height,
                             width: $0.boundingBox.width * region.width, height: $0.boundingBox.height * region.height), confidence: $0.confidence)
                     }
-                    if fragments.contains(where: { $0.text.localizedCaseInsensitiveContains("homework") }) {
+                    if fragments.contains(where: { TaskTextPolicy.isAssignmentTitle($0.text) }) {
                         lines.removeAll { $0.topDownY > header.topDownY && $0.centerX < right && $0.centerX > left }
-                        lines += fragments; method += " • wrapped-name retry"
+                        lines += fragments; method += " • title-column retry"
                     }
                 }
             }
@@ -142,7 +153,7 @@ public final class OCRService {
         }
         let dateCount = lines.filter { DeadlineParser.containsDate($0.text) }.count
         let nameCount = lines.filter {
-            $0.text.range(of: #"\b(?:Homework|Worksheet|Experiment|Lab|Project|Quiz|Assessment|H\d+)\b"#, options: [.regularExpression, .caseInsensitive]) != nil
+            $0.text.range(of: #"\b(?:Homework|Worksheet|Problem\s+Set|Essay|Exercise|Reading|Discussion|Experiment|Lab|Project|Quiz|Assessment|H\d+)\b"#, options: [.regularExpression, .caseInsensitive]) != nil
         }.count
         // On wide crops Vision can recognize a date column with high confidence
         // while skipping short titles across a large blank gap. Read overlapping
@@ -196,6 +207,11 @@ public final class OCRService {
         do { try VNImageRequestHandler(cgImage: image, options: [:]).perform([request]) }
         catch { throw OCRServiceError.recognitionFailed(error.localizedDescription) }
         try Task.checkCancellation()
+        let angles = (request.results ?? []).filter { $0.boundingBox.width > 0.08 }.map {
+            atan2(($0.topRight.y - $0.topLeft.y) * CGFloat(image.height),
+                  ($0.topRight.x - $0.topLeft.x) * CGFloat(image.width))
+        }.sorted()
+        lastTextAngle = angles.isEmpty ? 0 : angles[angles.count / 2]
         return (request.results ?? []).compactMap { observation in
             let alternatives = observation.topCandidates(numericFragment ? 5 : 1)
             guard let candidate = (numericFragment ? alternatives.first(where: { $0.string.range(of: #"^\d{1,3}$"#, options: .regularExpression) != nil }) : nil) ?? alternatives.first else { return nil }
@@ -209,10 +225,44 @@ public final class OCRService {
         let processed = input.applyingFilter("CIColorControls", parameters: [
             kCIInputSaturationKey: 0, kCIInputContrastKey: 1.15
         ]).transformed(by: CGAffineTransform(scaleX: max(1, scale), y: max(1, scale)))
-        let padding: CGFloat = 16
-        let extent = processed.extent.insetBy(dx: -padding, dy: -padding)
-        let background = CIImage(color: CIColor.white).cropped(to: extent)
-        return imageContext.createCGImage(processed.composited(over: background), from: extent)
+        // Preserve aspect ratio and normalized OCR coordinates during retries.
+        return imageContext.createCGImage(processed, from: processed.extent)
+    }
+
+    private func readingQuality(_ lines: [OCRLine], name: String) -> Double {
+        let tasks = AssignmentParser().parse(documents: [OCRDocument(sourceName: name, lines: lines)])
+        let confidence = lines.isEmpty ? 0 : Double(lines.map(\.confidence).reduce(0, +)) / Double(lines.count)
+        return Double(tasks.count) * 20 + Double(lines.filter { TaskTextPolicy.isAssignmentTitle($0.text) }.count) * 0.05 + confidence
+    }
+
+    private func straightenScreen(_ image: CGImage, angle: CGFloat) throws -> CGImage? {
+        try Task.checkCancellation()
+        let request = VNDetectRectanglesRequest()
+        request.minimumConfidence = 0.8; request.minimumSize = 0.4
+        request.minimumAspectRatio = 0.3; request.maximumAspectRatio = 1
+        request.maximumObservations = 4; request.quadratureTolerance = 30
+        try? VNImageRequestHandler(cgImage: image, options: [:]).perform([request])
+        let input = CIImage(cgImage: image)
+        if let rectangle = request.results?.filter({ $0.boundingBox.width * $0.boundingBox.height > 0.35 }).max(by: {
+            $0.boundingBox.width * $0.boundingBox.height < $1.boundingBox.width * $1.boundingBox.height
+        }) {
+            let horizontalTilt = abs(rectangle.topLeft.y - rectangle.topRight.y) + abs(rectangle.bottomLeft.y - rectangle.bottomRight.y)
+            let perspective = abs(rectangle.topLeft.x - rectangle.bottomLeft.x) + abs(rectangle.topRight.x - rectangle.bottomRight.x)
+            if horizontalTilt + perspective > 0.035 {
+                func point(_ p: CGPoint) -> CIVector { CIVector(x: p.x * CGFloat(image.width), y: p.y * CGFloat(image.height)) }
+                let corrected = input.applyingFilter("CIPerspectiveCorrection", parameters: [
+                    "inputTopLeft": point(rectangle.topLeft), "inputTopRight": point(rectangle.topRight),
+                    "inputBottomLeft": point(rectangle.bottomLeft), "inputBottomRight": point(rectangle.bottomRight)
+                ])
+                if corrected.extent.width > 200, corrected.extent.height > 100 {
+                    return imageContext.createCGImage(corrected, from: corrected.extent)
+                }
+            }
+        }
+        guard abs(angle) > 0.012, abs(angle) < 0.25 else { return nil }
+        let rotated = input.transformed(by: CGAffineTransform(rotationAngle: -angle))
+        let white = CIImage(color: .white).cropped(to: rotated.extent)
+        return imageContext.createCGImage(rotated.composited(over: white), from: rotated.extent)
     }
 
     private func ordered(_ lines: [OCRLine]) -> [OCRLine] {
@@ -222,13 +272,17 @@ public final class OCRService {
 
     private func deduplicated(_ lines: [OCRLine]) -> [OCRLine] {
         var kept: [OCRLine] = []
-        for line in lines.sorted(by: { $0.text.count > $1.text.count }) {
+        for line in lines.sorted(by: { $0.confidence == $1.confidence ? $0.text.count > $1.text.count : $0.confidence > $1.confidence }) {
             let text = line.text.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
             let duplicate = kept.contains { other in
                 let candidate = other.text.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
                 let overlap = line.boundingBox.intersection(other.boundingBox)
+                let smallArea = min(line.boundingBox.width * line.boundingBox.height, other.boundingBox.width * other.boundingBox.height)
+                let largeArea = max(line.boundingBox.width * line.boundingBox.height, other.boundingBox.width * other.boundingBox.height)
+                let area = overlap.isNull ? 0 : overlap.width * overlap.height
+                let sameObservation = smallArea > 0 && area / smallArea > 0.8 && area / largeArea > 0.55
                 return abs(line.topDownY - other.topDownY) < max(line.boundingBox.height, other.boundingBox.height) &&
-                    (text == candidate || (!overlap.isNull && (candidate.hasPrefix(text) || text.hasPrefix(candidate))))
+                    (sameObservation || text == candidate || (!overlap.isNull && (candidate.hasPrefix(text) || text.hasPrefix(candidate))))
             }
             if !duplicate { kept.append(line) }
         }

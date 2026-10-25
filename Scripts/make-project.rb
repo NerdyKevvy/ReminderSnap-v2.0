@@ -35,7 +35,7 @@ products = []
   configs = %w[Debug Release].map do |config|
     settings = {
       'PRODUCT_NAME'=>'ReminderSnap', 'EXECUTABLE_NAME'=>'ReminderSnap', 'PRODUCT_BUNDLE_IDENTIFIER'=>'com.nerdykevvy.ReminderSnap',
-      'SWIFT_VERSION'=>'5.0', 'MARKETING_VERSION'=>'2.1', 'CURRENT_PROJECT_VERSION'=>'20106',
+      'SWIFT_VERSION'=>'5.0', 'MARKETING_VERSION'=>'2.1', 'CURRENT_PROJECT_VERSION'=>'20107',
       'GOOGLE_CLIENT_ID'=>google_client, 'GOOGLE_REVERSED_CLIENT_ID'=>google_scheme,
       'CLOUDKIT_ENVIRONMENT'=>config == 'Debug' ? 'Development' : 'Production',
       'APS_ENVIRONMENT'=>config == 'Debug' ? 'development' : 'production',

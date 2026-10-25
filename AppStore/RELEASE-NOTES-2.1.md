@@ -11,6 +11,10 @@ Your assignments, together.
 - Import screenshots and PDFs, or photograph a laptop screen on iPhone and iPad.
 - Improved Gradescope and Canvas layouts, wrapped titles, course recognition and
   class-section filtering. Review uncertain details before saving.
+- Edit, archive or remove course preferences, with clear section labels and named
+  calendar colours. Correct courses per image without carrying them to new imports.
+- Better separation of assignment titles from scores/status columns, including
+  uneven and slanted layouts; bounded local retries help photographed screens.
 - Choose your workflow: stay in ReminderSnap, connect Apple apps, or optionally
   sign in to Google Calendar.
 - Enable ReminderSnap notifications and choose when to hear about your deadlines.
@@ -30,6 +34,8 @@ and account settings. External calendar edits are not automatically imported.
 - 打开即显示作业日历，保存作业，并用课程颜色图例清楚区分。
 - 导入截图与 PDF，或在 iPhone、iPad 上拍摄电脑屏幕。
 - 改进 Gradescope、Canvas 排版识别、换行标题、课程识别与班级筛选；保存前核对不确定的信息。
+- 支持编辑、归档及删除课程偏好，明确标注班级代码与日历颜色；可逐张修正课程，新导入不沿用。
+- 改进分数、状态与作业名称的区分，支持不齐整及倾斜排版，本地有限重试帮助识别屏幕照片。
 - 自选工作流：留在 ReminderSnap，连接 Apple 应用，或按需登录 Google 日历。
 - 开启 ReminderSnap 通知，自定义截止日期前的提醒时间。
 - 通过你自己的私人 iCloud 账户同步已核对作业。

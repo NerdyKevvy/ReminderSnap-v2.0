@@ -32,12 +32,28 @@ public struct CourseProfile: Identifiable, Codable, Sendable {
     public var timeZoneIdentifier: String
     public var colorIndex: Int
     public var modifiedAt: Date
+    public var isArchived: Bool?
+    public var isDeleted: Bool?
 
     public init(name: String, section: String = "", year: Int? = nil,
                 timeZoneIdentifier: String = TimeZone.current.identifier, colorIndex: Int = 0) {
         self.name = name; self.id = CourseNormalizer.tag(from: name)
         self.section = section; self.year = year; self.timeZoneIdentifier = timeZoneIdentifier
         self.colorIndex = colorIndex; self.modifiedAt = Date()
+    }
+
+    public func renamed(_ name: String) -> CourseProfile {
+        var copy = self
+        copy.name = name.trimmed; copy.id = CourseNormalizer.tag(from: copy.name)
+        copy.modifiedAt = Date()
+        return copy
+    }
+
+    public func tombstone() -> CourseProfile {
+        var copy = self
+        copy.isDeleted = true; copy.name = ""; copy.section = ""; copy.year = nil
+        copy.modifiedAt = Date()
+        return copy
     }
 }
 
@@ -154,7 +170,7 @@ public enum PlannerAlertSchedule {
 
 public enum SectionSelection {
     public static func matches(_ candidate: AssignmentCandidate, profile: CourseProfile?) -> Bool {
-        guard let selected = profile?.section.trimmed, !selected.isEmpty,
+        guard profile?.isArchived != true, let selected = profile?.section.trimmed, !selected.isEmpty,
               let section = candidate.sectionCode ?? LayoutInterpreter.section(in: candidate.assignmentName) else { return true }
         return selected.caseInsensitiveCompare(section) == .orderedSame
     }

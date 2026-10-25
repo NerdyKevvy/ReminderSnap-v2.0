@@ -25,14 +25,7 @@ struct PreferencesView: View {
                 }
                 notificationPanel
                 syncPanel
-                if !model.planner.courses.isEmpty {
-                    Panel {
-                        VStack(alignment: .leading, spacing: 15) {
-                            Label(model.copy("Courses & sections", "课程与班级"), systemImage: "graduationcap").font(.headline)
-                            ForEach(model.planner.courses) { profile in CourseProfileEditor(profile: profile) }
-                        }
-                    }
-                }
+                CourseManagementPanel()
                 Panel {
                     VStack(alignment: .leading, spacing: 14) {
                         Label(model.copy("Linked calendar updates", "关联日历更新"), systemImage: "link").font(.headline)
@@ -161,30 +154,111 @@ struct CourseProfileEditor: View {
     let profile: CourseProfile
     @State private var editing = false
     var body: some View {
-        DisclosureGroup(isExpanded: $editing) { CourseProfileFields(profile: profile) } label: {
-            HStack {
+        HStack {
                 Circle().fill(CourseColors.color(profile.name, model: model)).frame(width: 8, height: 8)
-                Text(profile.name).font(.system(size: 13))
-                if !profile.section.isEmpty { Text(profile.section).font(.caption).foregroundStyle(Studio.muted) }
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(profile.name).font(.system(size: 14, weight: .medium))
+                    Text(profile.section.isEmpty ? model.copy("All sections · no filter", "全部班级 · 不筛选") : model.copy("My section: \(profile.section)", "我的班级：\(profile.section)"))
+                        .font(.caption).foregroundStyle(Studio.muted)
+                    if profile.isArchived == true { Text(model.copy("Archived", "已归档")).font(.caption).foregroundStyle(Studio.amber) }
+                }
+                Spacer()
+                Button(model.copy("Edit", "编辑")) { editing = true }.buttonStyle(QuietButtonStyle())
+        }.sheet(isPresented: $editing) { CourseProfileFields(original: profile, profile: profile).environmentObject(model) }
+    }
+}
+
+struct CourseManagementPanel: View {
+    @EnvironmentObject private var model: AppModel
+    @State private var adding = false
+    var body: some View {
+        Panel {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    Label(model.copy("Courses & sections", "课程与班级"), systemImage: "graduationcap").font(.headline)
+                    Spacer()
+                    Button(model.copy("Add course", "添加课程")) { adding = true }.buttonStyle(QuietButtonStyle())
+                }
+                Text(model.copy("Edit a mistaken course name, choose your class section, or archive a finished course. Course choices never carry over to unrelated imports.", "可修正识别错误的课程名、选择所在班级，或归档已结束的课程。课程选择不会沿用到无关的新导入。"))
+                    .font(.caption).foregroundStyle(Studio.muted)
+                ForEach(model.planner.courses) { CourseProfileEditor(profile: $0) }
+                if model.planner.courses.isEmpty { Text(model.copy("No saved courses yet.", "尚无保存的课程。")).font(.caption).foregroundStyle(Studio.muted) }
             }
-        }
+        }.sheet(isPresented: $adding) { CourseProfileFields(original: nil, profile: CourseProfile(name: "")).environmentObject(model) }
     }
 }
 
 struct CourseProfileFields: View {
     @EnvironmentObject private var model: AppModel
+    @Environment(\.dismiss) private var dismiss
+    let original: CourseProfile?
     @State var profile: CourseProfile
+    @State private var deleting = false
+    @State private var error = ""
+    private let englishColors = ["Cyan", "Orange", "Purple", "Green", "Pink", "Yellow", "Blue", "Mint"]
+    private let chineseColors = ["青色", "橙色", "紫色", "绿色", "粉色", "黄色", "蓝色", "薄荷色"]
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            TextField(model.copy("Section · leave blank for all", "班级 · 留空显示全部"), text: $profile.section).studioField()
-            TextField(model.copy("Course year", "课程年份"), text: Binding(get: { profile.year.map(String.init) ?? "" }, set: { profile.year = Int($0) })).studioField()
-            TextField(model.copy("Timezone", "时区"), text: $profile.timeZoneIdentifier).studioField()
-            Picker(model.copy("Colour · see calendar legend", "颜色 · 对应日历图例"), selection: $profile.colorIndex) {
-                ForEach(0..<CourseColors.values.count, id: \.self) { index in Text("\(index + 1)").tag(index) }
+        VStack(spacing: 0) {
+            HStack {
+                Text(model.copy(original == nil ? "Add course" : "Edit course", original == nil ? "添加课程" : "编辑课程")).font(.title2)
+                Spacer(); Button(model.copy("Cancel", "取消")) { dismiss() }.buttonStyle(QuietButtonStyle())
+            }.padding(22)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    FieldLabel(title: model.copy("Course name or code", "课程名称或代码")) {
+                        TextField(model.copy("e.g. History 101", "例如：中国历史"), text: $profile.name).studioField()
+                    }
+                    Text(model.copy("Renaming also updates saved assignments in this course and their linked entries. Existing task links are preserved.", "重命名会同时更新该课程中已保存作业及其关联条目，保留原有任务关联。"))
+                        .font(.caption).foregroundStyle(Studio.muted)
+                    FieldLabel(title: model.copy("My class section · optional", "我的班级代码 · 可选")) {
+                        TextField(model.copy("e.g. A2LB · blank includes all", "例如 A2LB · 留空包含全部"), text: $profile.section).studioField()
+                    }
+                    Text(model.copy("Enter your section code, not the number of sections. Shared assignments stay visible.", "填写你所在的班级代码，并非班级数量。公共作业仍会显示。"))
+                        .font(.caption).foregroundStyle(Studio.muted)
+                    FieldLabel(title: model.copy("Course year · optional", "课程年份 · 可选")) {
+                        TextField("2026", text: Binding(get: { profile.year.map(String.init) ?? "" }, set: { profile.year = Int($0) })).studioField()
+                    }
+                    FieldLabel(title: model.copy("Course timezone", "课程时区")) { TextField("America/New_York", text: $profile.timeZoneIdentifier).studioField() }
+                    FieldLabel(title: model.copy("Calendar colour", "日历颜色")) {
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 110))], alignment: .leading, spacing: 10) {
+                            ForEach(CourseColors.values.indices, id: \.self) { index in
+                                Button { profile.colorIndex = index } label: {
+                                    HStack(spacing: 7) {
+                                        Circle().fill(CourseColors.values[index]).frame(width: 13, height: 13)
+                                        Text(model.language == .english ? englishColors[index] : chineseColors[index]).font(.caption)
+                                        if profile.colorIndex == index { Image(systemName: "checkmark").font(.caption) }
+                                    }.padding(8).frame(maxWidth: .infinity, alignment: .leading)
+                                        .background(profile.colorIndex == index ? Studio.silver.opacity(0.12) : Color.clear).clipShape(RoundedRectangle(cornerRadius: 8))
+                                }.buttonStyle(.plain)
+                            }
+                        }
+                    }
+                    if original != nil {
+                        Toggle(model.copy("Archived · course has ended", "归档 · 课程已结束"), isOn: Binding(get: { profile.isArchived == true }, set: { profile.isArchived = $0 }))
+                        Text(model.copy("Archived courses keep their assignments but stop supplying section and date preferences to new imports.", "归档后保留作业，但不再为新导入提供班级及日期偏好。"))
+                            .font(.caption).foregroundStyle(Studio.muted)
+                        Button(model.copy("Delete course preferences", "删除课程偏好"), role: .destructive) { deleting = true }
+                    }
+                    if !error.isEmpty { Text(error).font(.caption).foregroundStyle(Studio.amber) }
+                }.padding(22)
             }
-            Button(model.copy("Save course preferences", "保存课程偏好")) { model.saveProfile(profile) }.buttonStyle(QuietButtonStyle())
-                .disabled(TimeZone(identifier: profile.timeZoneIdentifier) == nil || profile.year.map { !(1900...2199).contains($0) } == true)
-        }.padding(.top, 12)
+            Button(model.copy("Save course", "保存课程")) {
+                if let original {
+                    if model.editCourse(original, updated: profile) { dismiss() } else { error = model.t(model.statusMessage) }
+                } else {
+                    let value = profile.renamed(profile.name)
+                    if model.planner.courses.contains(where: { $0.id == value.id }) { error = model.copy("This course already exists.", "该课程已存在。") }
+                    else { model.saveProfile(value); dismiss() }
+                }
+            }.buttonStyle(SilverButtonStyle()).padding(20)
+                .disabled(profile.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || TimeZone(identifier: profile.timeZoneIdentifier) == nil || profile.year.map { !(1900...2199).contains($0) } == true)
+        }.background(Studio.background).foregroundStyle(Studio.silver).preferredColorScheme(.dark)
+        .confirmationDialog(model.copy("Delete these course preferences?", "删除此课程偏好？"), isPresented: $deleting, titleVisibility: .visible) {
+            Button(model.copy("Delete preferences", "删除偏好"), role: .destructive) { if let original { model.removeCourse(original) }; dismiss() }
+        } message: { Text(model.copy("Saved assignments, reminders and calendar blocks are kept. Delete assignments separately from Your Task Calendar.", "保留已保存的作业、提醒和日历时间块。可在作业日历中另行删除任务。")) }
+        #if os(macOS)
+        .frame(width: 570, height: 730)
+        #endif
     }
 }
 

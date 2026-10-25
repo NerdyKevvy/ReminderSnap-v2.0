@@ -45,8 +45,20 @@ public struct ImportContext: Sendable {
     public var course: String
     public var year: Int?
     public var timeZoneIdentifier: String?
-    public init(course: String = "", year: Int? = nil, timeZoneIdentifier: String? = nil) {
+    public var courseOverrides: [String: String]
+    public init(course: String = "", year: Int? = nil, timeZoneIdentifier: String? = nil, courseOverrides: [String: String] = [:]) {
         self.course = course; self.year = year; self.timeZoneIdentifier = timeZoneIdentifier
+        self.courseOverrides = courseOverrides
+    }
+
+    public func scoped(to source: String) -> ImportContext {
+        var copy = self
+        if let chosen = courseOverrides[source] { copy.course = chosen.trimmed }
+        return copy
+    }
+
+    public func startingNewImport(replacingReview: Bool) -> ImportContext {
+        replacingReview ? ImportContext() : self
     }
 }
 
@@ -183,7 +195,7 @@ public enum CourseNormalizer {
         let generic = #"\b([A-Z]{1,8}(?:&[A-Z]{1,4})?(?:\s+[A-Z]{2,8}){0,2})\s+(\d{1,4}[A-Z]{0,2})\b"#
         guard let match = text.firstRegexMatch(pattern: generic),
               let department = match.capture(1), let number = match.capture(2),
-              !["FALL", "SPRING", "SUMMER", "WINTER", "HOMEWORK", "LAB", "CHAPTER", "DUE", "EXPERIMENT"].contains(department),
+              !["FALL", "SPRING", "SUMMER", "WINTER", "HOMEWORK", "LAB", "CHAPTER", "DUE", "EXPERIMENT", "PROBLEM SET", "PROBLEM", "SET", "PS", "HW", "STATUS", "SCORE", "QUESTION", "QUIZ", "EXAM", "PROJECT", "WORKSHEET", "ASSIGNMENT", "ASSIGNMENTS"].contains(department),
               !department.hasSuffix(" LEC") else { return nil }
         return "\(department) \(number)"
     }

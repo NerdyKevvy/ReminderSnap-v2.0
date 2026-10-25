@@ -15,7 +15,7 @@ if [[ "$RELEASE_PRIVACY_URL" != https://* ]]; then
 fi
 mkdir -p Artifacts
 release_version="${RELEASE_VERSION:-2.1}"
-release_build="${RELEASE_BUILD:-20106}"
+release_build="${RELEASE_BUILD:-20107}"
 archive_path="$project_dir/Artifacts/ReminderSnap-$platform-$release_version-$release_build.xcarchive"
 if [[ -e "$archive_path" ]]; then
   echo 'This archive already exists. Preserve it or choose a new build number/path before archiving again.' >&2

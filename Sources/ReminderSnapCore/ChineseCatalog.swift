@@ -4,6 +4,7 @@ import Foundation
 /// pass through this catalog. Add matching placeholders when adding a key.
 enum ChineseCatalog {
     static let strings: [String: String] = [
+        "This course changed on another device. Close and reopen its editor.": "此课程已在另一台设备修改，请关闭并重新打开编辑窗口。",
         "ReminderSnap 1.6.1": "ReminderSnap 1.6.1",
         "Welcome to ReminderSnap 1.6.1": "欢迎使用 ReminderSnap 1.6.1",
         "Calendar Display Help…": "日历显示帮助…",

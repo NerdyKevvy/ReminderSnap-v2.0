@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import CoreImage
 import ReminderSnapCore
 
 enum ReadingTests {
@@ -54,8 +55,50 @@ enum ReadingTests {
             print(String(format: "Warm repeated cropped-image read: %.2fs.", Date().timeIntervalSince(warmStart)))
         }
         print("Actual image/PDF smoke tests and 5 repeated reads passed.")
+        try variedTables(temporary: root)
         if let flag = CommandLine.arguments.firstIndex(of: "--fixtures"), flag + 1 < CommandLine.arguments.count {
             try fixtures(directory: URL(fileURLWithPath: CommandLine.arguments[flag + 1]), temporary: root)
+        }
+    }
+    private static func variedTables(temporary: URL) throws {
+        let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 1800, pixelsHigh: 800, bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: bitmap)
+        NSColor.white.setFill(); NSBezierPath(rect: CGRect(x: 0, y: 0, width: 1800, height: 800)).fill()
+        let attributes: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 27), .foregroundColor: NSColor.black]
+        func text(_ value: String, _ x: CGFloat, _ y: CGFloat) { (value as NSString).draw(at: CGPoint(x: x, y: y), withAttributes: attributes) }
+        text("BIO 202 Fall 2026", 40, 730)
+        for (value, x) in [("Name", CGFloat(40)), ("* Status", 620), ("Released", 1000), ("Due (EST)", 1450)] { text(value, x, 650) }
+        for index in 0..<4 {
+            let y = CGFloat(540 - index * 135)
+            text("Problem Set \(index)", 40, y + CGFloat(index % 2) * 5)
+            text(index % 2 == 0 ? "20.0 / 20.0t" : "No Submission", 620, y)
+            text("Oct 01 at 8:00AM", 1000, y - 8)
+            text("Nov 0\(index + 2) at 11:59PM", 1450, y - 8)
+        }
+        NSGraphicsContext.restoreGraphicsState()
+        let original = CIImage(cgImage: bitmap.cgImage!)
+        let context = CIContext(options: [.cacheIntermediates: false])
+        let rotated = original.transformed(by: CGAffineTransform(rotationAngle: 0.055))
+        let perspective = original.applyingFilter("CIPerspectiveTransform", parameters: [
+            "inputTopLeft": CIVector(x: 100, y: 810), "inputTopRight": CIVector(x: 1800, y: 720),
+            "inputBottomLeft": CIVector(x: 30, y: 100), "inputBottomRight": CIVector(x: 1720, y: 30)
+        ])
+        for (name, source) in [("irregular-table", original), ("rotated-table", rotated), ("perspective-table", perspective)] {
+            let background = CIImage(color: .white).cropped(to: source.extent.insetBy(dx: -25, dy: -25))
+            let composed = source.composited(over: background)
+            let image = context.createCGImage(composed, from: composed.extent)!
+            let path = temporary.appendingPathComponent(name + ".png")
+            try NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])!.write(to: path)
+            let start = Date()
+            let documents = try OCRService().recognizeAll(url: path)
+            let tasks = AssignmentParser().parse(documents: documents, context: ImportContext(year: 2026))
+            guard tasks.count == 4, Set(tasks.map(\.assignmentName)) == Set((0..<4).map { "Problem Set \($0)" }) else {
+                print("\(name) OCR: \(documents.first?.fullText ?? "")")
+                throw failure("\(name) lost real assignments or included metadata: \(tasks.map(\.assignmentName))")
+            }
+            guard tasks.allSatisfy({ $0.courseCode == "BIO 202" && $0.dueDate != nil }) else { throw failure("\(name): course/deadline pairing") }
+            print(String(format: "Actual %@ image OCR: 4 titles + correct courses/deadlines; no scores/status tasks; %.2fs.", name, Date().timeIntervalSince(start)))
         }
     }
     private static func fixtures(directory: URL, temporary: URL) throws {

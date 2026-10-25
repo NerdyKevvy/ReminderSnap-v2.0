@@ -4,18 +4,21 @@ public final class AssignmentParser {
     public init() {}
 
     public func parse(documents: [OCRDocument], context: ImportContext = ImportContext()) -> [AssignmentCandidate] {
-        let explicitCourses = documents.compactMap(courseCode(in:))
-        let uniqueCourses = Array(Set(explicitCourses))
-        let batchFallbackCourse = uniqueCourses.count == 1 ? uniqueCourses[0] : nil
-
         var candidates: [AssignmentCandidate] = []
         for document in documents {
+            let context = context.scoped(to: document.sourceName)
             if let structured = LayoutInterpreter.parse(document, context: context), !structured.isEmpty {
-                candidates += structured
+                candidates += structured.map { source in
+                    var value = source
+                    if let chosen = context.courseOverrides[document.sourceName] { value.courseCode = chosen.trimmed }
+                    return value
+                }
                 continue
             }
             let platform = detectPlatform(document)
-            let course = courseCode(in: document) ?? (context.course.trimmed.isEmpty ? nil : context.course.trimmed) ?? batchFallbackCourse ?? ""
+            // An unrelated screenshot in the same batch is never evidence for
+            // this page's course. Explicit per-source corrections take priority.
+            let course = context.courseOverrides[document.sourceName] ?? courseCode(in: document) ?? context.course.trimmed
             let spatial = parseSpatial(document, course: course, platform: platform, context: context)
             candidates += spatial
             // A partial spatial result must not suppress every other row.
@@ -35,7 +38,7 @@ public final class AssignmentParser {
             }
         }
 
-        return mergeDuplicates(candidates).sorted { lhs, rhs in
+        return mergeDuplicates(candidates.filter { TaskTextPolicy.isAssignmentTitle($0.assignmentName) }).sorted { lhs, rhs in
             switch (lhs.dueDate, rhs.dueDate) {
             case let (left?, right?):
                 if left != right { return left < right }
@@ -158,7 +161,7 @@ public final class AssignmentParser {
     }
 
     private func plausibleTitle(_ text: String) -> Bool {
-        guard text.trimmed.count >= 3, !isNoiseTitle(text), !DeadlineParser.containsDate(text),
+        guard TaskTextPolicy.isAssignmentTitle(text), text.trimmed.count >= 3, !isNoiseTitle(text), !DeadlineParser.containsDate(text),
               CourseNormalizer.code(from: text) == nil else { return false }
         let lower = text.replacingOccurrences(of: #"^[\s•●○◦·✓✔☑]+"#, with: "", options: .regularExpression).trimmed.lowercased()
         return !["released", "release date", "late due", "due on", "starts", "not submitted", "no submission", "submitted"].contains(where: { lower.hasPrefix($0) }) &&
@@ -168,17 +171,7 @@ public final class AssignmentParser {
     }
 
     private func courseCode(in document: OCRDocument) -> String? {
-        document.lines.compactMap { line -> (code: String, score: Int)? in
-            guard let code = CourseNormalizer.code(from: line.text) else { return nil }
-            var score = line.topDownY > 0.16 ? 100 : 0 // Prefer page content over unrelated browser tabs.
-            if line.text.localizedCaseInsensitiveContains("Fall") ||
-                line.text.localizedCaseInsensitiveContains("Spring") ||
-                line.text.localizedCaseInsensitiveContains("Summer") {
-                score += 20
-            }
-            if line.text.localizedCaseInsensitiveContains("Course") { score += 10 }
-            return (code, score)
-        }.max { $0.score < $1.score }?.code
+        CourseEvidence.code(in: document)
     }
 
     public func detectPlatform(_ document: OCRDocument) -> SourcePlatform {
@@ -415,6 +408,7 @@ public final class AssignmentParser {
     }
 
     private func isNoiseTitle(_ text: String) -> Bool {
+        if TaskTextPolicy.isMetadata(text) { return true }
         let normalized = text
             .replacingOccurrences(of: #"^[\s•●○◦·✓✔☑]+"#, with: "", options: .regularExpression)
             .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
@@ -451,6 +445,7 @@ public final class AssignmentParser {
                 candidate.centerX < maximumX &&
                 abs(candidate.topDownY - deadlineLine.topDownY) < 0.028 &&
                 candidate.text.count >= 4 &&
+                TaskTextPolicy.isAssignmentTitle(candidate.text) &&
                 !excluded.contains { candidate.text.caseInsensitiveCompare($0) == .orderedSame } &&
                 !candidate.text.localizedCaseInsensitiveContains("Course ID") &&
                 !candidate.text.localizedCaseInsensitiveContains("Fall 20")

@@ -147,6 +147,7 @@ private func XCTUnwrap<T>(_ value: T?) throws -> T {
         try await Version161Tests.run()
         try await SetupExperienceTests.run()
         try Planner21Tests.run()
+        try ImportReliabilityTests.run()
         if CommandLine.arguments.contains("--reading") { try ReadingTests.run() }
     }
 }

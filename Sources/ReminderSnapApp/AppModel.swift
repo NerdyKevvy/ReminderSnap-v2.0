@@ -99,6 +99,7 @@ final class AppModel: ObservableObject {
     @Published var batchCourse = ""
     @Published var batchYear = ""
     @Published var batchTimeZone = ""
+    @Published var importCourseOverrides: [String: String] = [:]
     @Published private(set) var defaultDeadlineNotificationEnabled: Bool
     @Published private(set) var defaultCompanionEventsEnabled: Bool
     @Published private(set) var defaultCompanionEventStartAlertEnabled: Bool
@@ -157,7 +158,7 @@ final class AppModel: ObservableObject {
     var canCancelImport: Bool { activeImport != nil }
     var canClearImport: Bool { !isProcessing && (!items.isEmpty || !documents.isEmpty || importedFileCount > 0) }
     var context: ImportContext {
-        ImportContext(course: batchCourse, year: Int(batchYear), timeZoneIdentifier: batchTimeZone.isEmpty ? nil : batchTimeZone)
+        ImportContext(course: batchCourse, year: Int(batchYear), timeZoneIdentifier: batchTimeZone.isEmpty ? nil : batchTimeZone, courseOverrides: importCourseOverrides)
     }
     var destinationNeedsRepair: Bool {
         (outputMode.usesReminders && (!reminderAccess || !reminderLists.contains { $0.id == selectedListID })) ||
@@ -251,7 +252,7 @@ final class AppModel: ObservableObject {
         guard !isProcessing, !isDemo else { return }
         for index in items.indices {
             items[index].status = items[index].candidate.warnings.isEmpty ? .ready : .needsReview
-            items[index].isSelected = items[index].candidate.dueDate != nil
+            items[index].isSelected = TaskTextPolicy.maySelectAutomatically(items[index].candidate)
         }
         Task { await refreshMatches() }
     }
@@ -279,6 +280,9 @@ final class AppModel: ObservableObject {
         guard !urls.isEmpty else { return }
         guard !isProcessing else { statusMessage = "Please wait for this import, or cancel it before importing more."; return }
         guard urls.count <= 50 else { statusMessage = "Import up to 50 files at a time."; return }
+        let newContext = context.startingNewImport(replacingReview: importedFileCount > 0)
+        batchCourse = newContext.course; batchYear = newContext.year.map(String.init) ?? ""
+        batchTimeZone = newContext.timeZoneIdentifier ?? ""; importCourseOverrides = newContext.courseOverrides
         guard batchYear.isEmpty || Int(batchYear).map({ (1900...2199).contains($0) }) == true else {
             statusMessage = "Enter a four-digit batch year, or leave it blank."; return
         }
@@ -366,6 +370,7 @@ final class AppModel: ObservableObject {
         items = []; matches = [:]; documents = []; readingSummary = ""; isDemo = false
         previewSaved = false; saveCompleted = false; importedFileCount = 0
         showingClearConfirmation = false
+        batchCourse = ""; batchYear = ""; batchTimeZone = ""; importCourseOverrides = [:]
         cleanPhotoCopies()
         statusMessage = "Review and temporary recognized text cleared. Your saved tasks are unchanged."
     }
@@ -442,11 +447,12 @@ final class AppModel: ObservableObject {
     private func loadItems(_ candidates: [AssignmentCandidate]) {
         items = candidates.map { source in
             var candidate = source
-            if let profile = planner.courses.first(where: { $0.id == candidate.courseTag }) {
+            if let profile = planner.courses.first(where: { $0.id == candidate.courseTag && $0.isArchived != true }) {
                 if let text = candidate.sourceDeadlineText,
                    let date = DeadlineParser.parse(text, fallbackYear: Int(batchYear) ?? profile.year, fallbackTimeZone: batchTimeZone.isEmpty ? profile.timeZoneIdentifier : batchTimeZone) {
                     candidate.dueDate = date.date; candidate.hasExplicitTime = date.hasExplicitTime
                     candidate.timeZoneIdentifier = date.timeZoneIdentifier
+                    candidate.warnings.removeAll { $0.hasPrefix("Year missing") || $0.hasPrefix("Deadline could not be validated") }
                 }
             }
             var item = ImportItem(candidate: candidate, deadlineNotificationEnabled: defaultDeadlineNotificationEnabled,
@@ -503,7 +509,7 @@ final class AppModel: ObservableObject {
     }
     func setAllSelected(_ selected: Bool) {
         let visible = Set(visibleImportItems.map(\.id))
-        for index in items.indices where items[index].candidate.dueDate != nil && (!selected || visible.contains(items[index].id)) {
+        for index in items.indices where items[index].candidate.dueDate != nil && TaskTextPolicy.isAssignmentTitle(items[index].candidate.assignmentName) && (!selected || visible.contains(items[index].id)) {
             items[index].isSelected = selected
         }
     }

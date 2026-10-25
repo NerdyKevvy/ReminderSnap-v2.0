@@ -10,7 +10,7 @@ struct TaskEditorView: View {
 
     private var valid: Bool {
         draft.candidate.dueDate != nil &&
-        !draft.candidate.assignmentName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        TaskTextPolicy.isAssignmentTitle(draft.candidate.assignmentName)
     }
     var body: some View {
         VStack(spacing: 0) {
