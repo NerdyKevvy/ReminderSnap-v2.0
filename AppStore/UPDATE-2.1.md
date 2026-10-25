@@ -52,8 +52,9 @@ completed acceptance, rather than implementation or compilation alone.
   no sensitive/restricted scopes requiring data-access verification. Search Console
   verified the project website; Google branding asks for a 24-hour propagation
   wait before retrying app-name verification. This is not a completed brand review.
-- Signed macOS and iOS 2.1 (20106) archives succeeded. Intermediate uploaded builds
-  are not the recommended beta. Use the latest build after TestFlight processing.
+- Signed macOS and iOS 2.1 (20106) archives/uploads succeeded. Both processed
+  builds are Testing in Owner testing, with bilingual test instructions saved.
+  Intermediate uploaded builds were not added to the group. Use build 20106.
 - Physical-device camera, notifications, cross-device iCloud/conflicts, accessibility
   and public store metadata/privacy acceptance remain open.
 

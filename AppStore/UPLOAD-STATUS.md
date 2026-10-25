@@ -1,7 +1,43 @@
 # ReminderSnap — upload status
 
-Updated October 25, 2026. Version 2.1 (20100) is available in internal TestFlight
+Updated October 25, 2026. Version 2.1 (20106) is available in internal TestFlight
 for macOS and iOS. Version 2.0 remains iOS Ready for Distribution; macOS In Review.
+
+## October 25 — final live-test follow-up, 2.1 (20106)
+
+- Corrected source published in 116cb45. Both signed build 20106 uploads succeeded,
+  Apple processing completed, and both platforms show Testing in Owner testing
+  (one tester, eight builds). Bilingual What to Test notes saved on both builds.
+  This is the recommended follow-up to 20100; intermediate development uploads
+  were not added to owner testing. No new tester invitation was sent.
+- [Mac 20106](https://appstoreconnect.apple.com/teams/6ece4185-8e0e-4f29-b306-ad88d6178e84/apps/6824731033/testflight/macos/f7f72a7f-55ff-4479-a12a-a8704e2246a6)
+  and [iOS 20106](https://appstoreconnect.apple.com/teams/6ece4185-8e0e-4f29-b306-ad88d6178e84/apps/6824731033/testflight/ios/aa243ddf-e278-4867-aa02-6f359710a15f).
+- Fixed hidden external-demo and linked-task notices, multi-account Google event
+  links, and real-task bulk block controls. Google deletion now bypasses cached
+  event data and handles version conflicts with fresh ownership/version checks.
+- Owner completed native Google consent. On Mac, the connection restored after
+  relaunch; a labelled test exported and opened in the correct personal account.
+  Editing updated the same Google event without duplication. Block-only removal
+  then deleted that event, kept its in-app assignment, and reached zero pending
+  updates. No test notifications were scheduled.
+- Public Google OAuth enabled with the owner's explicit approval. Its scopes
+  remain account ID/email and app-created calendars only; Google says no
+  sensitive/restricted data-access verification is required. Project-site
+  ownership verified through Search Console. App-name branding remains pending:
+  Google's feedback says to wait 24 hours after ownership verification before
+  retrying, to allow propagation. Retry no earlier than October 26.
+- Website/support text now reflects public Google sign-in and the 2.1 beta status.
+  [Device acceptance](DEVICE-TEST-2.1.md) and proposed [release text](RELEASE-NOTES-2.1.md)
+  are prepared. Physical-device camera, notifications, iCloud round-trip/conflicts,
+  accessibility and final store/privacy acceptance remain open. No public 2.1
+  review submission or release occurred.
+- Evidence: Artifacts/Submission/google-site-verified-2026-10-25.png,
+  google-production-enabled-2026-10-25.png, google-linked-edit-verified-2026-10-25.png,
+  and google-cleanup-zero-pending-2026-10-25.png. Test data remains labelled in-app;
+  no personal Apple reminders/events were changed.
+- Final availability proof: Artifacts/Submission/testflight-20106-ready-2026-10-25.png.
+  Live website reflects the current Google/beta status and is visually captured in
+  Artifacts/Submission/website-live-updated-2026-10-25.png.
 
 ## October 25 — update 2.1 beta
 
