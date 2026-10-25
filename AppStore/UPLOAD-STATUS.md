@@ -1,6 +1,35 @@
-# ReminderSnap 2.0 — upload status
+# ReminderSnap — upload status
 
-Updated October 22, 2026. Current state: iOS Ready for Distribution; macOS resubmitted and Waiting for Review.
+Updated October 25, 2026. Version 2.1 (20100) is available in internal TestFlight
+for macOS and iOS. Version 2.0 remains iOS Ready for Distribution; macOS In Review.
+
+## October 25 — update 2.1 beta
+
+- Source and website published to main in commit 31ec2d1 with the owner's explicit
+  approval. Both signed 2.1 (20100) archives uploaded and processed successfully.
+  App Store Connect shows both platforms Testing in Owner testing (one tester,
+  six builds including retained 2.0 builds). Bilingual beta test notes are saved.
+- [Mac beta build](https://appstoreconnect.apple.com/teams/6ece4185-8e0e-4f29-b306-ad88d6178e84/apps/6824731033/testflight/macos/31a203ee-4c8b-4f91-a01a-f54c49fac155)
+  and [iOS beta build](https://appstoreconnect.apple.com/teams/6ece4185-8e0e-4f29-b306-ad88d6178e84/apps/6824731033/testflight/ios/485ae7c7-2700-4f2d-bb17-79a27b4dcbba).
+- Verified the free HTTPS [website](https://nerdykevvy.github.io/ReminderSnap-v2.0/),
+  [privacy policy](https://nerdykevvy.github.io/ReminderSnap-v2.0/privacy.html), and
+  [support page](https://nerdykevvy.github.io/ReminderSnap-v2.0/support.html) render.
+  GitHub Pages deploys main/docs. The site labels 2.1 and Google access as beta.
+- Google consent branding saved with the live homepage/privacy URLs and authorized
+  domain nerdykevvy.github.io. Audience remains External / Testing, with only the
+  configured owner account. Native sign-in opened the system browser successfully;
+  completion and calendar export still need a real connection test. Website
+  ownership verification and public Google launch are not yet certified complete.
+- Real-device acceptance is recorded separately in [2.1 device checks](DEVICE-TEST-2.1.md).
+  Compilation/regression checks passed, but do not substitute for camera, actual
+  notification delivery, cross-device iCloud or linked edit/delete acceptance.
+- No public 2.1 App Review submission or release has been made. Current store
+  privacy answers were not changed. The older macOS 2.0 submission now shows
+  In Review; it was not withdrawn or replaced.
+- Evidence: Artifacts/Submission/testflight-20100-ready-2026-10-25.png and
+  Artifacts/Submission/website-live-2026-10-25.png. Artifacts remain ignored.
+
+The following sections preserve the 2.0 submission history.
 
 ## App record
 

@@ -22,6 +22,17 @@ Keep 2.0 production/review submissions intact. Prepare 2.1 as an update.
 - [ ] Signed archives uploaded to existing App Store Connect app; TestFlight
       testing before public review/release. No incomplete integration advertised.
 
+### Delivery checkpoint — October 25
+
+Both 2.1 (20100) platform builds are uploaded, processed and Testing in the
+existing Owner testing group. Source and static site are public at commit
+31ec2d1. The free GitHub Pages homepage, privacy and support pages render over
+HTTPS. Google branding contains those public links and the authorized domain;
+its audience remains Testing. Actual Google consent/export and cross-device
+acceptance are still pending. See [device checks](DEVICE-TEST-2.1.md) and
+[upload status](UPLOAD-STATUS.md). Checkboxes above intentionally represent
+completed acceptance, rather than implementation or compilation alone.
+
 ## External prerequisites
 
 Google project creation authorized by owner. Console initially selected NYU
