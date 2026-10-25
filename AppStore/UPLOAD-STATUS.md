@@ -1,7 +1,34 @@
 # ReminderSnap — upload status
 
-Updated October 25, 2026. Version 2.1 (20106) is available in internal TestFlight
+Updated October 25, 2026. Version 2.1 (20107) is available in internal TestFlight
 for macOS and iOS. Version 2.0 remains iOS Ready for Distribution; macOS In Review.
+
+## October 25 — import reliability and course management, 2.1 (20107)
+
+- Source commit 294d52b published to main. Both signed archives and uploads
+  succeeded with the existing signing setup, without provisioning changes.
+  Apple processing completed. Owner testing shows both new builds **Testing**,
+  one tester and ten retained builds. Bilingual What to Test notes are saved on
+  both builds; no new tester or invitation was added.
+- [Mac 20107](https://appstoreconnect.apple.com/teams/6ece4185-8e0e-4f29-b306-ad88d6178e84/apps/6824731033/testflight/macos/15b65037-ba9e-4178-8489-48e8f0d439ae)
+  and [iOS 20107](https://appstoreconnect.apple.com/teams/6ece4185-8e0e-4f29-b306-ad88d6178e84/apps/6824731033/testflight/ios/54b23548-863d-49e3-8a8f-29b73700d38b).
+- Added course create/edit/archive/delete preferences, labelled section codes,
+  named colour swatches and per-image course correction. New imports clear prior
+  context; one image cannot supply an unrelated image's course.
+- Hardened local OCR and interpretation: column roles, slanted rows, bounded
+  screen geometry/title-column retries, spatial deduplication and a shared final
+  score/status/header rejection gate. No hosted AI or privacy-policy change.
+- Regression checks, twelve varied geometry cases, generated image OCR (irregular,
+  rotated and perspective), cropped PNG/Photos/PDF reads and isolated course-store
+  persistence checks passed. Signed Mac and iOS archives compiled successfully.
+- Visually checked the Mac editor in isolated sandbox storage with cloud disabled.
+  A two-image import retained separate History/Biology courses. Importing the
+  course-less image again showed an empty course field, confirming context reset
+  in the real UI. No personal reminders/calendar entries were changed.
+- Evidence: Artifacts/Submission/testflight-20107-ready-2026-10-25.png.
+  Logs and generated fixtures are in Artifacts/Verification/reader-20107-*.
+  [Beta test notes and limits](BETA-20107.md) record remaining real-device checks.
+  No public 2.1 review submission or release occurred.
 
 ## October 25 — final live-test follow-up, 2.1 (20106)
 
