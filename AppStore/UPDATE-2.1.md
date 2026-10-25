@@ -33,6 +33,30 @@ acceptance are still pending. See [device checks](DEVICE-TEST-2.1.md) and
 [upload status](UPLOAD-STATUS.md). Checkboxes above intentionally represent
 completed acceptance, rather than implementation or compilation alone.
 
+### Live-test follow-up — build 20106
+
+- Fixed the external workflow confirmation being hidden behind the welcome sheet.
+  Linked-task notices also present on the visible assignment detail sheet.
+- Google event links now normalize Google's documented API htmlLink and target
+  the connected account, avoiding the browser's unrelated default school account.
+  Regression cases cover account routing, event identity and host restrictions.
+- Moved bulk linked-block removal out of the sample-only banner into real task
+  selection controls, with a compact layout fallback.
+- Google requests bypass response caching. Block deletion checks the latest
+  ownership marker and ETag, retries version conflicts at most three times, and
+  retains pending work when it cannot complete safely.
+- Real Mac tests passed Google consent, connection restoration, export, same-event
+  editing, account-aware opening and block removal while keeping the assignment.
+  No notifications were scheduled for the labelled test task.
+- Public Google OAuth was enabled with explicit owner approval. Google reports
+  no sensitive/restricted scopes requiring data-access verification. Search Console
+  verified the project website; Google branding asks for a 24-hour propagation
+  wait before retrying app-name verification. This is not a completed brand review.
+- Signed macOS and iOS 2.1 (20106) archives succeeded. Intermediate uploaded builds
+  are not the recommended beta. Use the latest build after TestFlight processing.
+- Physical-device camera, notifications, cross-device iCloud/conflicts, accessibility
+  and public store metadata/privacy acceptance remain open.
+
 ## External prerequisites
 
 Google project creation authorized by owner. Console initially selected NYU

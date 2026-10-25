@@ -6,6 +6,24 @@ public enum PlannerWorkflow: String, Codable, CaseIterable, Identifiable, Sendab
     public var id: String { rawValue }
 }
 
+public enum GoogleCalendarEventLink {
+    /// Google's event links otherwise use the browser's default account, which
+    /// can differ from the account connected to this device.
+    public static func url(_ eventLink: String, email: String) -> URL? {
+        guard !email.trimmed.isEmpty,
+              var components = URLComponents(string: eventLink),
+              components.scheme == "https",
+              components.host == "calendar.google.com" ||
+                (components.host == "www.google.com" && components.path == "/calendar/event") else { return nil }
+        components.host = "calendar.google.com"
+        var query = components.queryItems ?? []
+        query.removeAll { $0.name == "authuser" }
+        query.append(URLQueryItem(name: "authuser", value: email.trimmed))
+        components.queryItems = query
+        return components.url
+    }
+}
+
 public struct CourseProfile: Identifiable, Codable, Sendable {
     public var id: String
     public var name: String

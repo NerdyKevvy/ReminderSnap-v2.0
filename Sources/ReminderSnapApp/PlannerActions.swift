@@ -266,7 +266,16 @@ extension AppModel {
         Task { await googleCalendar.connect(); if googleCalendar.connected { await flushPendingExports() } }
     }
     func openDestination(_ task: SavedAssignment) {
-        if task.workflow == .google, let text = task.googleEventURL, let url = URL(string: text), url.scheme == "https" {
+        if task.workflow == .google {
+            guard googleCalendar.connected, task.googleAccountID == googleCalendar.accountID else {
+                workflowNotice = copy("Connect the Google account linked to this assignment in Settings, then open it again.", "请先在设置中连接此作业关联的 Google 账户，然后重新打开。")
+                return
+            }
+            guard let text = task.googleEventURL,
+                  let url = GoogleCalendarEventLink.url(text, email: googleCalendar.email) else {
+                workflowNotice = copy("This assignment is saved here. Retry its linked update in Settings before opening Google Calendar.", "作业已保存在本应用，请先在设置中重试关联更新，再打开 Google 日历。")
+                return
+            }
             openURL(url); return
         }
         if task.workflow == .apple {

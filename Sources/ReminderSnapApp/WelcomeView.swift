@@ -52,6 +52,14 @@ struct WelcomeView: View {
                 }.buttonStyle(SilverButtonStyle()).accessibilityIdentifier("onboarding.continue")
             }.padding(20).background(Studio.sidebar)
         }.background(Studio.background).foregroundStyle(Studio.silver).preferredColorScheme(.dark)
+        // Present on the active guide sheet; the underlying shell cannot present
+        // a second modal while this guide is covering it.
+        .alert(model.copy("Create a test task in your selected calendar?", "在所选日历中创建测试任务？"), isPresented: $model.showingExternalSampleConfirmation) {
+            Button(model.copy("Cancel", "取消"), role: .cancel) { }
+            Button(model.copy("Create & show me", "创建并查看")) { model.createExternalSample() }
+        } message: {
+            Text(model.copy("One clearly labelled test assignment will be saved. You can delete it and its linked items from Your Task Calendar. No notification will be scheduled for it.", "会保存一项明确标注的测试作业，可在作业日历中删除它及关联条目，不会为它安排通知。"))
+        }
         #if os(macOS)
         .frame(width: 650, height: 760)
         #endif

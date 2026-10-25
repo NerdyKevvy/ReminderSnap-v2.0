@@ -9,7 +9,7 @@ ReminderSnap 2.1 is your assignment center for Mac, iPhone and iPad. Import scre
 3. Check each title and deadline. Supply a missing year, confirm course timezone, and select your class section when prompted. Other sections are filtered, not deleted. Courses are optional; uncategorized tasks can still be saved.
 4. Save selected tasks. Confirmed tasks stay in your calendar with a course-colour legend. Clear Import only clears the temporary review.
 5. In Settings, enable ReminderSnap notifications and test them. Default timed-task alerts are one day and two hours before the real deadline. Date-only tasks use that morning and the previous morning. Open the app regularly: the nearest 60 alerts are scheduled, subject to system permission and Focus settings.
-6. Optionally choose Apple apps or Google Calendar. Google sign-in is on demand and accesses only app-created secondary calendars. During the initial beta, Google is restricted to the owner's configured test account; production authorization is not yet available to everyone.
+6. Optionally choose Apple apps or Google Calendar. Google sign-in is on demand and accesses only app-created secondary calendars. Public Google sign-in is enabled; app-name branding verification is still pending. Version 2.1 itself remains a TestFlight beta.
 
 Private iCloud sync uses the same Apple account on all devices. Offline edits stay local; sync can be delayed. Screenshots and raw OCR are not synced. Permission and Google sign-in must be configured separately on each device. External edits are not automatically imported. Apple-linked updates wait for their original exporting device; Google updates require its connected account.
 
@@ -58,7 +58,7 @@ Requirements: macOS 13 or later; iOS/iPadOS 17 or later. Both Apple Silicon and 
 
 确认的作业会保留在应用日历中，并有课程颜色图例。「清空导入」只清空临时核对数据。在设置中开启并测试 ReminderSnap 通知：默认提前一天、两小时通知；仅日期任务在当天和前一天早晨通知。系统仅安排最近 60 个通知，请定期打开应用刷新。送达受权限和专注模式影响。
 
-可按需连接 Apple 应用或 Google 日历。Google 仅在选择连接时登录，只访问本应用创建的辅助日历。初始测试阶段仅对已配置的开发者测试账户开放，尚未向所有用户开放 Google 正式授权。
+可按需连接 Apple 应用或 Google 日历。Google 仅在选择连接时登录，只访问本应用创建的辅助日历。Google 登录已向外部用户开启，应用名称的品牌验证仍待完成；2.1 应用本身仍处于 TestFlight 测试阶段。
 
 私人 iCloud 同步要求各设备使用同一 Apple 账户。离线修改保存在本机，同步可能延迟，不同步截图和原始识别文本。各设备分别授权和登录。外部日历修改不会自动导入；Apple 关联由最初导出设备更新，Google 需要对应账户连接。
 

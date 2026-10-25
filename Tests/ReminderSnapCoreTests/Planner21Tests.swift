@@ -9,6 +9,16 @@ enum Planner21Tests {
         func line(_ text: String, _ x: CGFloat, _ y: CGFloat, _ w: CGFloat = 0.3, _ h: CGFloat = 0.02) -> OCRLine {
             OCRLine(text: text, boundingBox: CGRect(x: x, y: 1 - y - h / 2, width: w, height: h))
         }
+        let routedLink = GoogleCalendarEventLink.url("https://calendar.google.com/calendar/event?eid=synthetic&authuser=0", email: "owner+calendar@example.com")!
+        let routedQuery = URLComponents(url: routedLink, resolvingAgainstBaseURL: false)!.queryItems!
+        try require(routedQuery.filter { $0.name == "authuser" }.map(\.value) == ["owner+calendar@example.com"], "Open event under connected Google account, replacing browser default")
+        try require(routedQuery.contains { $0.name == "eid" && $0.value == "synthetic" }, "Preserve event identity when routing account")
+        let apiLink = GoogleCalendarEventLink.url("https://www.google.com/calendar/event?eid=synthetic", email: "owner@example.com")
+        try require(apiLink?.host == "calendar.google.com" && apiLink?.path == "/calendar/event", "Normalize Google's documented API htmlLink to Calendar before account routing")
+        try require(GoogleCalendarEventLink.url("https://www.google.com/search", email: "owner@example.com") == nil, "Only Calendar event paths may receive account routing")
+        try require(GoogleCalendarEventLink.url("https://example.com/event", email: "owner@example.com") == nil, "Do not attach account identity to an unrelated host")
+        try require(GoogleCalendarEventLink.url("http://calendar.google.com/event", email: "owner@example.com") == nil, "Require secure Google event links")
+        try require(GoogleCalendarEventLink.url("https://calendar.google.com/event", email: " ") == nil, "Missing account cannot silently use a different browser account")
         try require(CourseNormalizer.code(from: "FA26_CS-UY_1114") == "CS-UY 1114", "Underscored NYU course")
         try require(CourseNormalizer.code(from: "I&C SCI 31: F26: Intro to Python") == "I&C SCI 31", "UCI computing course")
         try require(CourseNormalizer.code(from: "AC ENG 20A LEC E: ACADEMIC WRITING") == "AC ENG 20A", "UCI writing course")

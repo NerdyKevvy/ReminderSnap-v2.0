@@ -45,16 +45,10 @@ struct StudioShell: View {
         .fullScreenCover(isPresented: $model.showingCamera) { CameraImportView().environmentObject(model) }
         .sheet(item: $model.selectedAppleEvent) { reference in LinkedAppleEventPreview(reference: reference) }
         #endif
-        .alert(model.copy("Your linked task", "你的关联任务"), isPresented: Binding(get: { !model.workflowNotice.isEmpty }, set: { if !$0 { model.workflowNotice = "" } })) {
+        .alert(model.copy("Your linked task", "你的关联任务"), isPresented: Binding(get: { model.selectedSavedTask == nil && !model.showingSetup && !model.workflowNotice.isEmpty }, set: { if !$0 { model.workflowNotice = "" } })) {
             Button(model.copy("OK", "好")) { model.workflowNotice = "" }
         } message: { Text(model.workflowNotice) }
         .onOpenURL { model.googleCalendar.handle($0) }
-        .alert(model.copy("Create a test task in your selected calendar?", "在所选日历中创建测试任务？"), isPresented: $model.showingExternalSampleConfirmation) {
-            Button(model.copy("Cancel", "取消"), role: .cancel) { }
-            Button(model.copy("Create & show me", "创建并查看")) { model.createExternalSample() }
-        } message: {
-            Text(model.copy("One clearly labelled test assignment will be saved. You can delete it and its linked items from Your Task Calendar. No notification will be scheduled for it.", "会保存一项明确标注的测试作业，可在作业日历中删除它及关联条目，不会为它安排通知。"))
-        }
         .alert(model.copy("Clear this import?", "清空本次导入？"), isPresented: $model.showingClearConfirmation) {
             Button(model.copy("Cancel", "取消"), role: .cancel) { }
             Button(model.copy("Clear All", "清空全部"), role: .destructive) { model.clear() }

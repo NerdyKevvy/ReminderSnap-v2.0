@@ -23,7 +23,12 @@ final class GoogleCalendarConnection: ObservableObject {
     @Published var message = ""
     static let scope = "https://www.googleapis.com/auth/calendar.app.created"
     private let oauth = GoogleOAuthSession()
-    private let network = URLSession(configuration: .ephemeral)
+    private let network: URLSession = {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.urlCache = nil
+        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+        return URLSession(configuration: configuration)
+    }()
     private var clientID: String { Bundle.main.object(forInfoDictionaryKey: "GIDClientID") as? String ?? "" }
     var configured: Bool { clientID.hasSuffix(".apps.googleusercontent.com") }
 
@@ -68,15 +73,19 @@ final class GoogleCalendarConnection: ObservableObject {
     }
 
     private func request(_ path: String, method: String = "GET", body: [String: Any]? = nil,
-                         accepted: Set<Int> = [200, 201, 204]) async throws -> ([String: Any], Int) {
+                         accepted: Set<Int> = [200, 201, 204], etag: String? = nil) async throws -> ([String: Any], Int) {
         let accessToken = try await token()
         guard let url = URL(string: "https://www.googleapis.com/calendar/v3/" + path) else {
             throw CalendarConnectionError.message("Invalid Calendar request.")
         }
-        var request = URLRequest(url: url); request.httpMethod = method
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData); request.httpMethod = method
         request.setValue("Bearer " + accessToken, forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        if let body { request.httpBody = try JSONSerialization.data(withJSONObject: body) }
+        request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
+        if let etag { request.setValue(etag, forHTTPHeaderField: "If-Match") }
+        if let body {
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        }
         let (data, response) = try await network.data(for: request)
         let code = (response as? HTTPURLResponse)?.statusCode ?? 0
         guard accepted.contains(code) else {
@@ -164,12 +173,18 @@ final class GoogleCalendarConnection: ObservableObject {
     func delete(_ task: SavedAssignment) async throws {
         guard let calendar = task.googleCalendarID, let event = task.googleEventID else { return }
         let path = "calendars/\(escaped(calendar))/events/\(escaped(event))"
-        let (existing, code) = try await request(path, accepted: [200, 404, 410])
-        guard code == 200 else { return }
-        let properties = existing["extendedProperties"] as? [String: Any]
-        guard (properties?["private"] as? [String: String])?["remindersnapTask"] == task.id.uuidString else {
-            throw CalendarConnectionError.message("This event is not owned by ReminderSnap; it was not deleted.")
+        for _ in 0..<3 {
+            let (existing, code) = try await request(path, accepted: [200, 404, 410])
+            guard code == 200, existing["status"] as? String != "cancelled" else { return }
+            let properties = existing["extendedProperties"] as? [String: Any]
+            guard (properties?["private"] as? [String: String])?["remindersnapTask"] == task.id.uuidString else {
+                throw CalendarConnectionError.message("This event is not owned by ReminderSnap; it was not deleted.")
+            }
+            // Use a fresh version and re-check ownership after a concurrent edit.
+            // Never force deletion with a wildcard or reuse a cached event.
+            let (_, deletionCode) = try await request(path, method: "DELETE", accepted: [200, 204, 404, 410, 412], etag: existing["etag"] as? String)
+            if deletionCode != 412 { return }
         }
-        _ = try await request(path, method: "DELETE", accepted: [200, 204, 404, 410])
+        throw CalendarConnectionError.message("Google Calendar changed while removing the block. The assignment is safe; retry its linked update in Settings.")
     }
 }

@@ -1,10 +1,10 @@
-# Owner TestFlight check — 2.1 (20100)
+# Owner TestFlight check — 2.1 (20106)
 
 Both macOS and iOS builds are in the existing Owner testing group. This is an
 internal beta; build availability does not establish that the checks below pass.
 Use disposable assignments, with no personal source images posted publicly.
 
-1. Update to 2.1 (20100) on each device. Check the visual introduction in English
+1. Update to 2.1 (20106) on each device. Check the visual introduction in English
    and Simplified Chinese, try its calendar preview, finish it and relaunch.
    The normal first page should be Your Task Calendar. Replay remains available
    under User Guide.
@@ -32,8 +32,8 @@ Use disposable assignments, with no personal source images posted publicly.
    export a future task, verifying the real reminder deadline and companion block.
    Edit/retry it and check for duplicates. Updates to Apple-linked entries run on
    the original exporting device. External edits are not imported automatically.
-8. Google currently permits only the configured owner test account. Connect in
-   Settings using that account and grant the requested app-created-calendar
+8. Google sign-in is now enabled for external users; app-name branding verification
+   is pending. Connect in Settings and grant the requested app-created-calendar
    access. Export one labelled test item, open it in Google, edit and retry it,
    then relaunch and confirm the connection restores. Verify an event is updated
    rather than duplicated. Existing unrelated calendars must remain untouched.
@@ -45,3 +45,21 @@ Use disposable assignments, with no personal source images posted publicly.
 Report the build, device/OS, workflow, expected result and actual result. Mark any
 untested item explicitly. Public App Review submission requires completed device
 acceptance, Google launch configuration and refreshed store/privacy information.
+
+## Checks performed on October 25
+
+The owner completed native Google consent. On Mac, the connection survived an
+app relaunch. A labelled test task exported to the dedicated calendar with a
+22:00–23:00 block and its actual 23:59 deadline in the description. A linked edit
+updated the same event (same task marker), with one event remaining. The corrected
+destination link opened the personal connected account despite the browser's
+default school account. The guide's external-test confirmation was visible after
+moving its presentation onto the guide sheet. These checks do not establish
+physical iPhone/iPad camera, notification or multi-device sync acceptance.
+
+The real-task selection controls now expose Remove linked blocks. On the labelled
+Google test, removing the block preserved the saved assignment. A Google 412
+version conflict initially left the operation pending; fresh uncached reads,
+version-checked deletion and bounded retries completed it. The app then reported
+zero pending updates and Google Calendar showed no event on that day. The retained
+DEMO 101 test assignment has notifications disabled and can be inspected locally.

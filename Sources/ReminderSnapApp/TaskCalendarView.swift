@@ -44,8 +44,6 @@ struct TaskCalendarView: View {
                     HStack {
                         Label(model.copy("Sample calendar · no real tasks or alerts", "示例日历 · 不创建真实任务或通知"), systemImage: "sparkles")
                         Spacer()
-                        Button(model.copy("Remove linked blocks", "移除关联时间块")) { showingRemoveBlocks = true }
-                            .disabled(selected.isEmpty)
                         Button(model.copy("Exit demo", "退出示例")) { model.showSampleCalendar = false }
                     }.font(.caption).foregroundStyle(Studio.amber)
                 }
@@ -82,13 +80,16 @@ struct TaskCalendarView: View {
                     }.buttonStyle(.plain).disabled(model.showSampleCalendar)
                 }
                 if selecting {
-                    HStack {
-                        Button(model.copy("Select all", "全选")) { selected = Set(displayed.map(\.id)) }.buttonStyle(.plain)
-                        Text("\(selected.count)").foregroundStyle(Studio.muted)
-                        Spacer()
-                        Button(role: .destructive) { showingDelete = true } label: {
-                            Label(model.copy("Delete selected", "删除所选"), systemImage: "trash")
-                        }.disabled(selected.isEmpty)
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Button(model.copy("Select all", "全选")) { selected = Set(displayed.map(\.id)) }.buttonStyle(.plain)
+                            Text("\(selected.count)").foregroundStyle(Studio.muted)
+                            Spacer()
+                        }
+                        ViewThatFits(in: .horizontal) {
+                            HStack(spacing: 12) { selectionActions }
+                            VStack(alignment: .leading, spacing: 12) { selectionActions }
+                        }
                     }.font(.caption)
                 }
                 if displayed.isEmpty {
@@ -122,6 +123,17 @@ struct TaskCalendarView: View {
         } message: {
             Text(model.copy("Your saved assignments, app notifications and linked Apple reminders remain. Only planning events created by ReminderSnap are removed. Linked updates may wait for the original device or a network connection.", "已保存作业、应用通知与关联 Apple 提醒均保留，仅移除 ReminderSnap 创建的计划日程。可能需要原始设备或联网后完成。"))
         }
+    }
+
+    @ViewBuilder private var selectionActions: some View {
+        Button { showingRemoveBlocks = true } label: {
+            Label(model.copy("Remove linked blocks", "移除关联时间块"), systemImage: "calendar.badge.minus")
+        }
+        .accessibilityIdentifier("calendar.removeLinkedBlocks")
+        .disabled(!assignments.contains { selected.contains($0.id) && ($0.workflow == .google || $0.appleCalendar) })
+        Button(role: .destructive) { showingDelete = true } label: {
+            Label(model.copy("Delete selected", "删除所选"), systemImage: "trash")
+        }.disabled(selected.isEmpty)
     }
 
     private var heading: some View {
@@ -335,6 +347,9 @@ struct SavedTaskDetailView: View {
             }.buttonStyle(SilverButtonStyle()).disabled(task.candidate.assignmentName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || task.candidate.timeZoneIdentifier.flatMap(TimeZone.init(identifier:)) == nil)
                 .padding(20)
         }.background(Studio.background).foregroundStyle(Studio.silver).preferredColorScheme(.dark)
+        .alert(model.copy("Your linked task", "你的关联任务"), isPresented: Binding(get: { !model.workflowNotice.isEmpty }, set: { if !$0 { model.workflowNotice = "" } })) {
+            Button(model.copy("OK", "好")) { model.workflowNotice = "" }
+        } message: { Text(model.workflowNotice) }
         .alert(model.copy("Check the saved assignment", "请检查已保存的作业"), isPresented: $saveConflict) {
             Button(model.copy("Reload saved version", "重新加载已保存版本")) {
                 if let current = model.savedAssignments.first(where: { $0.id == task.id }) { task = current }
