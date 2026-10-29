@@ -1,7 +1,38 @@
 # ReminderSnap — upload status
 
-Updated October 25, 2026. Version 2.1 (20107) is available in internal TestFlight
-for macOS and iOS. Version 2.0 remains iOS Ready for Distribution; macOS In Review.
+Updated October 29, 2026. Version 2.1 (20107) is **Waiting for Review** for both
+macOS and iOS/iPadOS. Both releases are set to become available automatically
+after approval. Version 2.0 is Ready for Distribution on both platforms.
+
+## October 29 — public 2.1 update submitted
+
+- The owner reported several days of testing and authorized public submission of
+  the existing build 20107. No application code, binary or provisioning changes
+  were made for this submission; app source remains commit 294d52b.
+- Created version 2.1 release records for both platforms and attached the tested
+  build 20107. Saved English and Simplified Chinese descriptions and release
+  notes, current support/marketing links, and detailed App Review instructions.
+  Existing approved screenshots were inherited. Private review contacts remain
+  unchanged; an app login is not required.
+- Both submissions passed Apple's submission validation and visibly reached
+  **Waiting for Review**. Mac submission at 6:22 PM Eastern:
+  [c613a81a-6372-43d7-a67d-355ffed497cc](https://appstoreconnect.apple.com/apps/6824731033/distribution/reviewsubmissions/details/c613a81a-6372-43d7-a67d-355ffed497cc).
+  iOS/iPadOS submission at 6:25 PM Eastern:
+  [83bfaa89-7b24-47be-8bc1-fec3d74fdbc3](https://appstoreconnect.apple.com/apps/6824731033/distribution/reviewsubmissions/details/83bfaa89-7b24-47be-8bc1-fec3d74fdbc3).
+- Selected automatic release after approval and immediate availability to all
+  users, retaining existing ratings, free pricing and no in-app purchases.
+  Approval/public availability of 2.1 has not yet occurred.
+- Verified the hosted bilingual privacy and support pages. Both privacy-policy
+  localizations now point to the readable GitHub Pages privacy page. The existing
+  Data Not Collected declaration was retained after checking the local/direct
+  provider data flows; no new legal agreement or questionnaire was accepted.
+- Review notes explain optional Google sign-in, private iCloud, notification
+  settings, the one-time Apple permission refresh/reopen workaround, and linked
+  edits/deletion. They also disclose that submitted/graded rows are hidden by
+  default, total counts include hidden rows, and missing-deadline rows may not
+  become dated tasks. This submission does not claim those behaviors changed.
+- Evidence: Artifacts/Submission/both-submitted-20107-2026-10-29.png.
+  No login was needed. Await Apple's decisions and respond to any review issues.
 
 ## October 25 — import reliability and course management, 2.1 (20107)
 

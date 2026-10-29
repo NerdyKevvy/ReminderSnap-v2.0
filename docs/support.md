@@ -7,20 +7,23 @@ permalink: /support.html
 
 ReminderSnap 2.1 is your assignment center for Mac, iPhone and iPad. Import screenshots, photos or PDFs, check the extracted details, and keep deadlines in the in-app calendar. Optional Apple and Google workflows export selected tasks. Recognition runs on-device; no school login is needed. Version 2.0 retains its Apple-only import workflow.
 
-## Version 2.1 beta — quick start
+## Version 2.1 — quick start
+
+Build 20107 was submitted to App Review for both platforms on October 29, 2026
+and is awaiting approval. Version 2.0 remains the current public release.
 
 1. Follow the short visual introduction. The first page is **Your Task Calendar**.
 2. Choose **Import Tasks**. On iPhone/iPad you can take a photo of a laptop screen, crop/retake it, or select photos/files.
 3. Check each title and deadline. Supply a missing year, confirm course timezone, and select your class section when prompted. Other sections are filtered, not deleted. Courses are optional; uncategorized tasks can still be saved.
 4. Save selected tasks. Confirmed tasks stay in your calendar with a course-colour legend. Clear Import only clears the temporary review.
 5. In Settings, enable ReminderSnap notifications and test them. Default timed-task alerts are one day and two hours before the real deadline. Date-only tasks use that morning and the previous morning. Open the app regularly: the nearest 60 alerts are scheduled, subject to system permission and Focus settings.
-6. Optionally choose Apple apps or Google Calendar. Google sign-in is on demand and accesses only app-created secondary calendars. Public Google sign-in is enabled; app-name branding verification is still pending. Version 2.1 itself remains a TestFlight beta.
+6. Optionally choose Apple apps or Google Calendar. Google sign-in is on demand and accesses only app-created secondary calendars. Public Google sign-in is enabled; app-name branding verification is still pending. Version 2.1 is awaiting App Review and remains available to the existing TestFlight testers.
 
 Private iCloud sync uses the same Apple account on all devices. Offline edits stay local; sync can be delayed. Screenshots and raw OCR are not synced. Permission and Google sign-in must be configured separately on each device. External edits are not automatically imported. Apple-linked updates wait for their original exporting device; Google updates require its connected account.
 
 Use Select in Your Task Calendar to remove multiple linked planning blocks while keeping assignments, or delete assignments with/without linked items. Test tasks are labelled and can be removed in Settings. The in-app sample is only a preview; an external demo asks before creating one labelled real test item.
 
-Some recognition is uncertain, especially underlined single-digit assignment numbers, glare, small text or missing timezone/year. The app warns instead of inventing information. Always review before relying on a deadline. Camera, real-device notifications, cross-device sync and linked edits require beta device testing.
+Some recognition is uncertain, especially underlined single-digit assignment numbers, glare, small text or missing timezone/year. Always review before relying on a deadline. Camera, notifications, cross-device sync and linked edits depend on device permissions and account settings. Submitted/graded assignments are hidden by default in the import list; use the sliders menu → Show submitted assignments to include them. The detected count includes hidden rows. Rows without a visible deadline may not become dated tasks.
 
 ## Get help
 
@@ -57,19 +60,21 @@ Requirements: macOS 13 or later; iOS/iPadOS 17 or later. Both Apple Silicon and 
 
 # ReminderSnap 支持
 
-## 2.1 测试版
+## 2.1
+
+构建版本 20107 已于 2026 年 10 月 29 日提交两个平台的 App Review，尚待批准；当前公开版本仍为 2.0。
 
 首页为「作业日历」，导航包含「作业日历」「导入任务」「设置」「使用指南」。导入截图、照片或 PDF 后核对详情；iPhone/iPad 支持拍摄电脑屏幕、裁剪与重拍。缺少年份时需补充，课程时区需确认，多个班级时选择自己的班级。其他班级仅被筛选；课程可留空，未分类作业仍可保存。
 
 确认的作业会保留在应用日历中，并有课程颜色图例。「清空导入」只清空临时核对数据。在设置中开启并测试 ReminderSnap 通知：默认提前一天、两小时通知；仅日期任务在当天和前一天早晨通知。系统仅安排最近 60 个通知，请定期打开应用刷新。送达受权限和专注模式影响。
 
-可按需连接 Apple 应用或 Google 日历。Google 仅在选择连接时登录，只访问本应用创建的辅助日历。Google 登录已向外部用户开启，应用名称的品牌验证仍待完成；2.1 应用本身仍处于 TestFlight 测试阶段。
+可按需连接 Apple 应用或 Google 日历。Google 仅在选择连接时登录，只访问本应用创建的辅助日历。Google 登录已向外部用户开启，应用名称的品牌验证仍待完成；2.1 正在等待 App Review，现有测试者仍可通过 TestFlight 使用。
 
 私人 iCloud 同步要求各设备使用同一 Apple 账户。离线修改保存在本机，同步可能延迟，不同步截图和原始识别文本。各设备分别授权和登录。外部日历修改不会自动导入；Apple 关联由最初导出设备更新，Google 需要对应账户连接。
 
 可在作业日历中批量选择并移除关联计划块，同时保留作业；也可选择删除作业时是否删除关联条目。设置中可清理引导测试任务。应用内示例不写入真实日历；外部测试会在创建一项标注的测试任务前征求同意。
 
-下划线单个作业编号、反光、小字或缺少时区/年份仍可能识别不确定，应用会提示而不会编造。保存前请核对。相机、真实设备通知、跨设备同步及关联修改仍需测试版实机验证。
+下划线单个作业编号、反光、小字或缺少时区/年份仍可能导致识别不确定，保存前请核对。相机、通知、跨设备同步和关联修改取决于设备权限及账户设置。导入列表默认隐藏已提交或已评分作业，可在筛选菜单开启「显示已提交作业」。识别总数包括被隐藏的条目，未显示截止日期的行可能不会生成带日期任务。
 
 ## 2.0 说明
 
